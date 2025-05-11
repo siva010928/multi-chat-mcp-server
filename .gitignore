@@ -49,3 +49,6 @@ credentials.json
 
 # Mac OS
 .DS_Store
+
+.cursorindexingignore
+*.mdc

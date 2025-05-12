@@ -21,6 +21,13 @@ This project provides a server implementation for the Model Control Protocol (MC
 
 ## Setup
 
+### Prerequisites
+
+- **Google Workspace Account**: This tool only works with Google Workspace accounts (formerly G Suite) in an organization. Personal Google accounts cannot access the Google Chat API.
+- **Google Cloud Platform Project**: You must be able to create and configure a project in Google Cloud Console.
+- **OAuth 2.0 Understanding**: Basic familiarity with OAuth authentication flows is helpful.
+- **Python 3.9+**: The server requires Python 3.9 or newer.
+
 ### 1. Installation
 
 1. Clone this repository:
@@ -51,6 +58,11 @@ pip install -r requirements.txt
    - Enable the Google Chat API for your project:
      - Navigate to "APIs & Services" > "Library"
      - Search for "Google Chat API" and enable it
+   - Additionally, enable the People API if you plan to use the `get_my_mentions` tool or access user information:
+     - Navigate to "APIs & Services" > "Library"
+     - Search for "People API" and enable it
+
+   > **Important**: This tool can only be used with Google Workspace accounts in an organization. Personal Google accounts cannot create Google Chat API projects. You must have a Google Workspace account to set up OAuth credentials and use this tool.
 
 2. **Set up OAuth credentials**:
    - Go to "APIs & Services" > "Credentials"
@@ -60,7 +72,8 @@ pip install -r requirements.txt
    - Under "Authorized JavaScript origins" add: `http://localhost:8000`
    - Under "Authorized redirect URIs" add: `http://localhost:8000/auth/callback`
    - Click "Create" and download the JSON file
-   - Rename the downloaded file to `credentials.json` and place it in the root directory of this project
+   - **Important**: You must rename the downloaded file to `credentials.json` and place it in the root directory of this project. The authentication process specifically looks for this filename and cannot proceed without it.
+   - This credentials.json file contains the client configuration that Google uses to verify your application's identity during the OAuth flow. Without it, authentication will fail.
    - Reference: [Google OAuth 2.0 Documentation](https://developers.google.com/identity/protocols/oauth2)
 
 3. **Authenticate with Google**:
@@ -101,10 +114,6 @@ Replace `/path/to/AIFSD-google-chat-mcp` with the actual path to your cloned rep
 
 The following tools are available to interact with Google Chat:
 
-### Basic Tools
-- **`mcp_google_chat_add`** - Perform simple arithmetic addition
-  - Parameters: `a` (integer), `b` (integer)
-  - Returns: Sum of a and b
 
 ### Chat Space Management
 - **`mcp_google_chat_get_chat_spaces`** - List all Google Chat spaces you have access to
@@ -213,6 +222,26 @@ The Google Chat MCP server uses OAuth 2.0 authentication with refresh tokens to 
 - Tokens are stored in `token.json` in the project root directory (configurable with `--token-path`)
 - The token file contains both access and refresh tokens
 - Tokens are also cached in memory for better performance
+
+### Switching Accounts or Logging Out
+
+To switch to a different Google account or log out from your current account:
+
+1. Delete the token.json file from your project directory:
+   ```bash
+   rm token.json
+   ```
+
+2. If the server is already running, stop it first (e.g., use Ctrl+C)
+
+3. Restart the authentication server:
+   ```bash
+   python server.py -local-auth
+   ```
+
+4. Visit http://localhost:8000/auth in your browser and authenticate with the desired Google account
+
+This process will create a new token.json file with the credentials for the new account.
 
 ### When to Re-authenticate
 

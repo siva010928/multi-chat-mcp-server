@@ -10,6 +10,8 @@ This project provides a server implementation for the Model Control Protocol (MC
 
 - Authentication with Google Chat API using OAuth 2.0
 - Sending and reading messages across spaces and direct messages
+- Pagination support for large result sets
+- Enhanced sender information with complete user profiles
 - Managing spaces and members
 - Adding emoji reactions to messages
 - Searching messages using text queries
@@ -18,6 +20,7 @@ This project provides a server implementation for the Model Control Protocol (MC
 - Getting user profile information
 - Working with message threads and replies
 - Batch sending of multiple messages
+- Conversation summarization and participant analysis
 
 ## Setup
 
@@ -125,7 +128,12 @@ The following tools are available to interact with Google Chat:
     - `space_name` (string, required): Space identifier (e.g., "spaces/AAQAtjsc9v4")
     - `start_date` (string, required): Date in YYYY-MM-DD format
     - `end_date` (string, optional): Date in YYYY-MM-DD format
-  - Returns: Array of message objects from the specified space
+    - `include_sender_info` (boolean, optional): Whether to include detailed sender information
+    - `page_size` (integer, optional): Maximum number of messages to return (default: 25, max: 1000)
+    - `page_token` (string, optional): Token for retrieving the next page of results
+    - `filter_str` (string, optional): Custom filter string in Google Chat API format
+    - `order_by` (string, optional): Ordering format like "createTime DESC"
+  - Returns: Dictionary containing an array of message objects and a nextPageToken for pagination
 
 ### Messaging
 - **`mcp_google_chat_send_message`** - Send a text message to a Google Chat space
@@ -169,19 +177,45 @@ The following tools are available to interact with Google Chat:
   - Parameters:
     - `query` (string, required): Search text
     - `spaces` (array of strings, optional): List of spaces to search in
-    - `max_results` (integer, optional): Maximum number of results
-  - Returns: Array of matching message objects
+    - `max_results` (integer, optional): Maximum number of results (default: 50)
+    - `include_sender_info` (boolean, optional): Whether to include detailed sender information
+    - `page_token` (string, optional): Token for retrieving the next page of results
+    - `filter_str` (string, optional): Custom filter string in Google Chat API format
+    - `order_by` (string, optional): Ordering format like "createTime DESC"
+  - Returns: Dictionary with matching message objects and nextPageToken for pagination
 
 - **`mcp_google_chat_get_my_mentions`** - Find messages that mention you
   - Parameters:
     - `days` (integer, optional): Number of days to look back (default: 7)
     - `space_id` (string, optional): Limit search to a specific space
-  - Returns: Array of messages mentioning you
+    - `include_sender_info` (boolean, optional): Whether to include detailed sender information
+    - `page_size` (integer, optional): Maximum number of messages to return (default: 50)
+    - `page_token` (string, optional): Token for retrieving the next page of results
+  - Returns: Dictionary with messages mentioning you and nextPageToken for pagination
 
 ### User Information
 - **`mcp_google_chat_get_my_user_info`** - Get your Google Chat user details
   - Parameters: none
   - Returns: User object with details like email, display name
+
+- **`mcp_google_chat_get_user_info_by_id`** - Get information about a specific user by their ID
+  - Parameters:
+    - `user_id` (string, required): The ID of the user to get information for
+  - Returns: User object with details like email, display name, profile photo
+
+- **`mcp_google_chat_get_message_with_sender_info`** - Get a message with enhanced sender details
+  - Parameters:
+    - `message_name` (string, required): Full resource name of message
+  - Returns: Full message object with additional sender_info field containing detailed user profile
+
+- **`mcp_google_chat_list_messages_with_sender_info`** - List messages with enhanced sender information
+  - Parameters:
+    - `space_name` (string, required): Space identifier
+    - `start_date` (string, optional): Date in YYYY-MM-DD format
+    - `end_date` (string, optional): Date in YYYY-MM-DD format
+    - `limit` (integer, optional): Maximum number of messages (default: 10)
+    - `page_token` (string, optional): Token for retrieving the next page of results
+  - Returns: Dictionary with messages array and nextPageToken for pagination, with sender_info included
 
 ### Space Management
 - **`mcp_google_chat_manage_space_members`** - Add or remove members from a space
@@ -204,6 +238,25 @@ The following tools are available to interact with Google Chat:
   - Parameters:
     - `messages` (array of objects, required): List of message objects to send
   - Returns: Results for each message
+
+### Conversation Analysis
+- **`mcp_google_chat_get_conversation_participants`** - Get information about conversation participants
+  - Parameters:
+    - `space_name` (string, required): Space identifier
+    - `start_date` (string, optional): Date in YYYY-MM-DD format
+    - `end_date` (string, optional): Date in YYYY-MM-DD format
+    - `max_messages` (integer, optional): Maximum number of messages to analyze (default: 100)
+  - Returns: Array of participant information objects
+
+- **`mcp_google_chat_summarize_conversation`** - Generate a summary of a conversation
+  - Parameters:
+    - `space_name` (string, required): Space identifier
+    - `message_limit` (integer, optional): Maximum messages to include (default: 10)
+    - `start_date` (string, optional): Date in YYYY-MM-DD format
+    - `end_date` (string, optional): Date in YYYY-MM-DD format
+    - `page_token` (string, optional): Token for retrieving the next page of results
+    - `filter_str` (string, optional): Custom filter string in Google Chat API format
+  - Returns: Dictionary with space details, participant list, and recent messages
 
 ## Authentication & Token Management
 
@@ -251,11 +304,54 @@ You'll need to re-authenticate (delete `token.json` and go through the auth flow
 2. The refresh token has expired (rare, typically after 6 months of inactivity)
 3. You've revoked access for the application in your Google account
 4. You want to authenticate with a different Google account
+5. You're using a different device or location that triggers Google's security checks
 
-### Troubleshooting
+> **Token Management Tools**: For manual token management and troubleshooting, the repository includes two utility scripts:
+> - `refresh_token.py`: Manually refresh an expired access token
+> - `check_token.py`: Validate and examine the current token status
 
-- **Authentication Errors**: If you encounter "Invalid Credentials" errors, try running `refresh_token.py` or re-authenticate completely
-- **Missing Permissions**: If you get "Permission Denied" errors, check the `SCOPES` list and re-authenticate after ensuring all required permissions are included
+## Pagination Support
+
+Many Google Chat API functions now support pagination for handling large result sets:
+
+### How Pagination Works
+
+- Functions that can return many results accept a `page_size` parameter and return a `nextPageToken` in their response
+- The maximum number of results per page varies by endpoint but is typically limited to 1000 items
+- When a `nextPageToken` is present in the response, there are more results available
+
+### Using Pagination
+
+1. Make an initial request with desired `page_size` (e.g., 25, 50, 100)
+2. Check if the response contains a `nextPageToken` 
+3. To get the next page of results, make another request with the same parameters plus the `page_token` parameter set to the `nextPageToken` value from the previous response
+4. Repeat until the response no longer includes a `nextPageToken` or returns an empty one
+
+### Example Response Structure
+
+```json
+{
+  "messages": [
+    { /* message 1 */ },
+    { /* message 2 */ },
+    // ... more messages
+  ],
+  "nextPageToken": "Eg0KBW1ldGFkGgYKBAgEEAMaKQoJbWFpbF90aW1lGh..."
+}
+```
+
+### Endpoints Supporting Pagination
+
+The following functions support pagination:
+- `get_space_messages`
+- `search_messages`
+- `get_my_mentions`
+- `list_messages_with_sender_info`
+- `summarize_conversation`
+
+## Testing
+
+The repository includes a comprehensive test suite to verify functionality:
 
 ## Development
 

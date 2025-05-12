@@ -134,7 +134,13 @@ async def list_chat_spaces() -> List[Dict]:
 
 async def list_space_messages(space_name: str, 
                             start_date: Optional[datetime.datetime] = None,
-                            end_date: Optional[datetime.datetime] = None) -> List[Dict]:
+                            end_date: Optional[datetime.datetime] = None,
+                            include_sender_info: bool = False,
+                            page_size: int = 25,
+                            page_token: Optional[str] = None,
+                            filter_str: Optional[str] = None,
+                            order_by: Optional[str] = None,
+                            show_deleted: bool = False) -> Dict:
     """Lists messages from a specific Google Chat space with optional time filtering.
     
     Args:
@@ -142,9 +148,17 @@ async def list_space_messages(space_name: str,
         start_date: Optional start datetime for filtering messages. If provided without end_date,
                    will query messages for the entire day of start_date
         end_date: Optional end datetime for filtering messages. Only used if start_date is also provided
+        include_sender_info: Whether to include sender information in the returned messages (default: False)
+        page_size: Maximum number of messages to return (default: 25, max: 1000)
+        page_token: Page token from a previous request for pagination
+        filter_str: Optional filter string in the format specified by Google Chat API
+                   For example: "createTime > \"2023-04-21T11:30:00-04:00\""
+        order_by: How messages are ordered, format: "<field> <direction>", 
+                 e.g., "createTime DESC" (default: "createTime ASC")
+        show_deleted: Whether to include deleted messages (default: False)
     
     Returns:
-        List of message objects from the space matching the time criteria
+        Dictionary with 'messages' list and optional 'nextPageToken'
         
     Raises:
         Exception: If authentication fails or API request fails
@@ -156,9 +170,8 @@ async def list_space_messages(space_name: str,
             
         service = build('chat', 'v1', credentials=creds)
         
-        # Prepare filter string based on provided dates
-        filter_str = None
-        if start_date:
+        # If filter not provided but start_date is, construct a filter string
+        if not filter_str and start_date:
             if end_date:
                 # Format for date range query
                 filter_str = f"createTime > \"{start_date.isoformat()}\" AND createTime < \"{end_date.isoformat()}\""
@@ -168,14 +181,48 @@ async def list_space_messages(space_name: str,
                 day_end = day_start + datetime.timedelta(days=1)
                 filter_str = f"createTime > \"{day_start.isoformat()}\" AND createTime < \"{day_end.isoformat()}\""
         
-        # Make API request
-        request = service.spaces().messages().list(parent=space_name, pageSize=100)
+        # Prepare request parameters
+        request_params = {
+            'parent': space_name,
+            'pageSize': min(page_size, 1000)  # Enforce API limit of 1000
+        }
+        
+        # Add optional parameters if provided
         if filter_str:
-            request = service.spaces().messages().list(parent=space_name, filter=filter_str, pageSize=100)
-            
-        response = request.execute()
+            request_params['filter'] = filter_str
+        if page_token:
+            request_params['pageToken'] = page_token
+        if order_by:
+            request_params['orderBy'] = order_by
+        if show_deleted:
+            request_params['showDeleted'] = show_deleted
+        
+        # Make API request
+        response = service.spaces().messages().list(**request_params).execute()
+        
+        # Extract messages and next page token
+        messages = response.get('messages', [])
+        next_page_token = response.get('nextPageToken')
+        
+        # Add sender information if requested
+        if include_sender_info:
+            for message in messages:
+                if "sender" in message and "name" in message["sender"]:
+                    sender_id = message["sender"]["name"]
+                    try:
+                        sender_info = await get_user_info_by_id(sender_id)
+                        message["sender_info"] = sender_info
+                    except Exception:
+                        # If we fail to get sender info, continue with basic info
+                        message["sender_info"] = {
+                            "id": sender_id,
+                            "display_name": f"User {sender_id.split('/')[-1]}"
+                        }
 
-        return response.get('messages', [])
+        return {
+            'messages': messages,
+            'nextPageToken': next_page_token
+        }
         
     except Exception as e:
         raise Exception(f"Failed to list messages in space: {str(e)}")
@@ -270,7 +317,7 @@ async def reply_to_thread(space_name: str, thread_key: str, text: str, cards_v2=
     
     Args:
         space_name: The name/identifier of the space containing the thread
-        thread_key: The thread key to reply to
+        thread_key: The thread key to reply to. Can be a simple ID, a threadKey, or a full thread name
         text: Text content of the reply
         cards_v2: Optional card content for the reply (list of card objects)
         
@@ -289,14 +336,61 @@ async def reply_to_thread(space_name: str, thread_key: str, text: str, cards_v2=
         
         # Build message body
         message_body = {
-            "text": text,
-            "thread": {"threadKey": thread_key}
+            "text": text
         }
+        
+        # Try multiple approaches for thread identification to improve reliability
+        # This uses a tiered approach to thread identification
+        
+        if thread_key.startswith("spaces/") and "/threads/" in thread_key:
+            # Full thread name provided (spaces/*/threads/*) - use it directly
+            message_body["thread"] = {"name": thread_key}
+        elif thread_key.startswith("threads/"):
+            # Thread key starts with "threads/" - extract the ID
+            thread_id = thread_key.replace("threads/", "")
+            message_body["thread"] = {"threadKey": thread_id}
+        else:
+            # Simple thread key or ID - try to use it directly
+            message_body["thread"] = {"threadKey": thread_key}
+            
+            # Additionally try to find the original message to get its thread name
+            try:
+                # Try to get the message directly first
+                direct_msg = None
+                try:
+                    direct_msg = service.spaces().messages().get(
+                        name=f"{space_name}/messages/{thread_key}.{thread_key}"
+                    ).execute()
+                except Exception:
+                    pass
+                    
+                # If direct lookup failed, try finding from space messages
+                if not direct_msg:
+                    space_messages = service.spaces().messages().list(
+                        parent=space_name,
+                        pageSize=100
+                    ).execute().get('messages', [])
+                    
+                    # Look for messages with matching thread name or threadKey
+                    for msg in space_messages:
+                        if msg.get("name", "").endswith(thread_key):
+                            direct_msg = msg
+                            break
+                        if "thread" in msg and msg["thread"].get("name", "").endswith(thread_key):
+                            direct_msg = msg
+                            break
+                
+                # If we found a message, use its thread information
+                if direct_msg and "thread" in direct_msg and "name" in direct_msg["thread"]:
+                    message_body["thread"] = {"name": direct_msg["thread"]["name"]}
+            except Exception as e:
+                # If thread lookup fails, continue with the simple threadKey approach
+                print(f"Thread lookup failed: {str(e)}")
         
         if cards_v2:
             message_body["cardsV2"] = cards_v2
             
-        # Make API request with thread key
+        # Make API request with appropriate thread options
         response = service.spaces().messages().create(
             parent=space_name,
             messageReplyOption="REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD",
@@ -347,15 +441,19 @@ async def get_current_user_info() -> Dict:
     except Exception as e:
         raise Exception(f"Failed to get user info: {str(e)}")
 
-async def get_user_mentions(days: int = 7, space_id: Optional[str] = None) -> List[Dict]:
+async def get_user_mentions(days: int = 7, space_id: Optional[str] = None, include_sender_info: bool = True,
+                      page_size: int = 50, page_token: Optional[str] = None) -> Dict:
     """Gets messages that mention the authenticated user from all spaces or a specific space.
     
     Args:
         days: Number of days to look back for mentions (default: 7)
         space_id: Optional space ID to check for mentions in a specific space
+        include_sender_info: Whether to include sender information in the returned messages (default: True)
+        page_size: Maximum number of messages to return per space (default: 50)
+        page_token: Optional page token for pagination (only applicable when space_id is provided)
         
     Returns:
-        List of message objects where the user was mentioned
+        Dictionary with 'messages' list of messages where the user was mentioned and optional 'nextPageToken'
         
     Raises:
         Exception: If authentication fails or API request fails
@@ -380,64 +478,110 @@ async def get_user_mentions(days: int = 7, space_id: Optional[str] = None) -> Li
         
         if not username:
             raise Exception("Could not determine username for mentions")
-            
-        # Get spaces to search
-        spaces_to_search = []
-        if space_id:
-            # If space_id is provided, only search that space
-            if not space_id.startswith('spaces/'):
-                space_id = f"spaces/{space_id}"
-            spaces_to_search = [space_id]
-        else:
-            # Otherwise search all spaces
-            spaces_response = await list_chat_spaces()
-            spaces_to_search = [space.get("name") for space in spaces_response if space.get("name")]
         
         # Calculate date range (now - days)
         end_date = datetime.datetime.now(datetime.timezone.utc)
         start_date = end_date - datetime.timedelta(days=days)
-        
-        all_mentions = []
-        
-        # For each space, get messages and filter for mentions
-        for space_name in spaces_to_search:
-            if not space_name:
-                continue
+        date_filter = f"createTime > \"{start_date.isoformat()}\""
+            
+        # If space_id is provided, we can use pagination and just get messages from one space
+        if space_id:
+            if not space_id.startswith('spaces/'):
+                space_id = f"spaces/{space_id}"
                 
-            try:
-                messages = await list_space_messages(space_name, start_date, end_date)
+            # Get messages from the specific space
+            messages_result = await list_space_messages(
+                space_id, 
+                include_sender_info=include_sender_info,
+                page_size=page_size,
+                page_token=page_token,
+                filter_str=date_filter
+            )
+            messages = messages_result.get('messages', [])
+            next_page_token = messages_result.get('nextPageToken')
+            
+            # Filter messages that mention the user by username
+            mention_messages = []
+            for msg in messages:
+                text = msg.get("text", "")
+                # Check if the username is in the text (could be in the form @username or just username)
+                if username.lower() in text.lower() or f"@{username.lower()}" in text.lower():
+                    # Add the space information to the message
+                    msg["space_info"] = {
+                        "name": space_id
+                    }
+                    # Try to get the space display name
+                    try:
+                        space_details = service.spaces().get(name=space_id).execute()
+                        msg["space_info"]["displayName"] = space_details.get("displayName", "Unknown Space")
+                    except:
+                        msg["space_info"]["displayName"] = "Unknown Space"
+                    
+                    mention_messages.append(msg)
+            
+            return {
+                'messages': mention_messages,
+                'nextPageToken': next_page_token
+            }
+            
+        # If no space_id is provided, we need to search across all spaces
+        else:
+            # Get all spaces
+            spaces_response = await list_chat_spaces()
+            spaces_to_search = [space.get("name") for space in spaces_response if space.get("name")]
+            
+            all_mentions = []
+            
+            # For each space, get messages and filter for mentions
+            for space_name in spaces_to_search:
+                if not space_name:
+                    continue
+                    
+                try:
+                    # Get messages from this space
+                    messages_result = await list_space_messages(
+                        space_name,
+                        include_sender_info=include_sender_info,
+                        page_size=page_size,
+                        filter_str=date_filter
+                    )
+                    messages = messages_result.get('messages', [])
+                    
+                    # Filter messages that mention the user by username
+                    for msg in messages:
+                        text = msg.get("text", "")
+                        # Check if the username is in the text (could be in the form @username or just username)
+                        if username.lower() in text.lower() or f"@{username.lower()}" in text.lower():
+                            # Add the space information to the message
+                            msg["space_info"] = {
+                                "name": space_name
+                            }
+                            # Try to get the space display name
+                            try:
+                                space_details = service.spaces().get(name=space_name).execute()
+                                msg["space_info"]["displayName"] = space_details.get("displayName", "Unknown Space")
+                            except:
+                                msg["space_info"]["displayName"] = "Unknown Space"
+                                
+                            all_mentions.append(msg)
+                except Exception:
+                    # If we fail to get messages from one space, continue with others
+                    continue
+            
+            return {
+                'messages': all_mentions,
+                'nextPageToken': None  # No pagination when searching across all spaces
+            }
                 
-                # Filter messages that mention the user by username
-                for msg in messages:
-                    text = msg.get("text", "")
-                    # Check if the username is in the text (could be in the form @username or just username)
-                    if username.lower() in text.lower() or f"@{username.lower()}" in text.lower():
-                        # Add the space information to the message
-                        msg["space_info"] = {
-                            "name": space_name
-                        }
-                        # Try to get the space display name
-                        try:
-                            space_details = service.spaces().get(name=space_name).execute()
-                            msg["space_info"]["displayName"] = space_details.get("displayName", "Unknown Space")
-                        except:
-                            msg["space_info"]["displayName"] = "Unknown Space"
-                            
-                        all_mentions.append(msg)
-            except Exception as e:
-                # If we fail to get messages from one space, continue with others
-                continue
-                
-        return all_mentions
-        
     except Exception as e:
         raise Exception(f"Failed to get user mentions: {str(e)}")
 
-async def get_message(message_name: str) -> Dict:
+async def get_message(message_name: str, include_sender_info: bool = False) -> Dict:
     """Gets a specific message by its resource name.
     
     Args:
         message_name: The resource name of the message (spaces/*/messages/*)
+        include_sender_info: Whether to include sender information in the returned message (default: False)
         
     Returns:
         The message object
@@ -453,9 +597,22 @@ async def get_message(message_name: str) -> Dict:
         service = build('chat', 'v1', credentials=creds)
         
         # Make API request
-        response = service.spaces().messages().get(name=message_name).execute()
+        message = service.spaces().messages().get(name=message_name).execute()
         
-        return response
+        # Add sender information if requested
+        if include_sender_info and "sender" in message and "name" in message["sender"]:
+            sender_id = message["sender"]["name"]
+            try:
+                sender_info = await get_user_info_by_id(sender_id)
+                message["sender_info"] = sender_info
+            except Exception:
+                # If we fail to get sender info, continue with basic info
+                message["sender_info"] = {
+                    "id": sender_id,
+                    "display_name": f"User {sender_id.split('/')[-1]}"
+                }
+        
+        return message
         
     except Exception as e:
         raise Exception(f"Failed to get message: {str(e)}")
@@ -569,16 +726,22 @@ async def create_interactive_card_message(space_name: str,
     
 # Enhanced Google Chat Operations
 
-async def search_messages(query: str, spaces: List[str] = None, max_results: int = 50) -> List[Dict]:
+async def search_messages(query: str, spaces: List[str] = None, max_results: int = 50, 
+                    include_sender_info: bool = False, page_token: Optional[str] = None,
+                    filter_str: Optional[str] = None, order_by: Optional[str] = None) -> Dict:
     """Search for messages across all spaces or specified spaces.
     
     Args:
         query: The search query string
         spaces: Optional list of space names to search in. If None, searches all spaces.
-        max_results: Maximum number of results to return (default: 50)
+        max_results: Maximum number of results to return per space (default: 50)
+        include_sender_info: Whether to include sender information in the returned messages (default: False)
+        page_token: Optional page token for pagination (only applicable when searching a single space)
+        filter_str: Optional filter string in the format specified by Google Chat API
+        order_by: How messages are ordered, format: "<field> <direction>"
         
     Returns:
-        List of message objects matching the search query
+        Dictionary with 'messages' list of matching messages and optional 'nextPageToken'
         
     Raises:
         Exception: If authentication fails or search fails
@@ -597,18 +760,51 @@ async def search_messages(query: str, spaces: List[str] = None, max_results: int
             spaces_response = await list_chat_spaces()
             spaces_to_search = [space.get("name") for space in spaces_response if space.get("name")]
         
+        # If only searching one space and we have a page token, we can do direct pagination
+        if len(spaces_to_search) == 1 and page_token:
+            space_name = spaces_to_search[0]
+            
+            # Get messages from the space with pagination
+            result = await list_space_messages(
+                space_name,
+                include_sender_info=include_sender_info,
+                page_size=max_results,
+                page_token=page_token,
+                filter_str=filter_str,
+                order_by=order_by
+            )
+            messages = result.get('messages', [])
+            next_page_token = result.get('nextPageToken')
+            
+            # Filter messages by query
+            matched_messages = []
+            for msg in messages:
+                text = msg.get("text", "").lower()
+                if query.lower() in text:
+                    # Add space information to the message
+                    msg["space_info"] = {"name": space_name}
+                    matched_messages.append(msg)
+            
+            return {
+                'messages': matched_messages,
+                'nextPageToken': next_page_token
+            }
+        
+        # Otherwise, search across all specified spaces
         all_results = []
         
         # Search in each space
         for space_name in spaces_to_search:
             try:
-                # We're simulating search since there's no direct search API
-                # We'll get recent messages and filter by the query
-                messages = await list_space_messages(
-                    space_name, 
-                    datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=30),
-                    datetime.datetime.now(datetime.timezone.utc)
+                # Get messages from this space
+                result = await list_space_messages(
+                    space_name,
+                    include_sender_info=include_sender_info,
+                    page_size=max_results,
+                    filter_str=filter_str,
+                    order_by=order_by
                 )
+                messages = result.get('messages', [])
                 
                 # Filter messages by query
                 for msg in messages:
@@ -619,12 +815,18 @@ async def search_messages(query: str, spaces: List[str] = None, max_results: int
                         all_results.append(msg)
                         
                         if len(all_results) >= max_results:
-                            return all_results[:max_results]
+                            return {
+                                'messages': all_results[:max_results],
+                                'nextPageToken': None  # No pagination when limited by max_results
+                            }
             except Exception:
                 # If we fail to search one space, continue with others
                 continue
                 
-        return all_results
+        return {
+            'messages': all_results,
+            'nextPageToken': None  # No pagination when searching across multiple spaces
+        }
         
     except Exception as e:
         raise Exception(f"Failed to search messages: {str(e)}")
@@ -912,4 +1114,224 @@ async def send_file_message(space_name: str, file_path: str, message_text: str =
         
     except Exception as e:
         raise Exception(f"Failed to send file message: {str(e)}")
+
+async def get_user_info_by_id(user_id: str) -> Dict:
+    """Gets information about a specific user by their user ID.
+    
+    Args:
+        user_id: The ID of the user to get information for (e.g., 'users/1234567890')
+        
+    Returns:
+        Dictionary containing user details if available
+        
+    Raises:
+        Exception: If authentication fails or user info retrieval fails
+    """
+    try:
+        creds = get_credentials()
+        if not creds:
+            raise Exception("No valid credentials found. Please authenticate first.")
+            
+        # Use the People API to get user information
+        people_service = build('people', 'v1', credentials=creds)
+        
+        # Extract user resource name from user_id if needed
+        if not user_id.startswith('people/'):
+            # Convert from Chat API format (users/123) to People API format (people/123)
+            if user_id.startswith('users/'):
+                user_resource = f"people/{user_id.split('/')[1]}"
+            else:
+                user_resource = f"people/{user_id}"
+        else:
+            user_resource = user_id
+            
+        try:
+            # Try to get profile data for the user
+            profile = people_service.people().get(
+                resourceName=user_resource,
+                personFields='names,emailAddresses,photos'
+            ).execute()
+            
+            # Extract user information
+            names = profile.get('names', [])
+            emails = profile.get('emailAddresses', [])
+            photos = profile.get('photos', [])
+            
+            user_info = {
+                "id": user_id,
+                "email": emails[0].get("value") if emails else None,
+                "display_name": names[0].get("displayName") if names else None,
+                "given_name": names[0].get("givenName") if names else None,
+                "family_name": names[0].get("familyName") if names else None,
+                "profile_photo": photos[0].get("url") if photos else None
+            }
+            
+            return user_info
+        except Exception as e:
+            # If we can't get detailed info, return basic info
+            return {
+                "id": user_id,
+                "display_name": f"User {user_id.split('/')[-1]}",
+                "error": str(e)
+            }
+        
+    except Exception as e:
+        raise Exception(f"Failed to get user info: {str(e)}")
+
+async def get_message_with_sender_info(message_name: str) -> Dict:
+    """Gets a specific message by its resource name and adds sender information.
+    
+    Args:
+        message_name: The resource name of the message (spaces/*/messages/*)
+        
+    Returns:
+        The message object with additional sender information
+        
+    Raises:
+        Exception: If authentication fails or message retrieval fails
+    """
+    return await get_message(message_name, include_sender_info=True)
+
+async def list_messages_with_sender_info(space_name: str, 
+                                        start_date: Optional[datetime.datetime] = None,
+                                        end_date: Optional[datetime.datetime] = None,
+                                        limit: int = 10,
+                                        page_token: Optional[str] = None) -> Dict:
+    """Lists messages from a specific Google Chat space with sender information.
+    
+    Args:
+        space_name: The name/identifier of the space to fetch messages from
+        start_date: Optional start datetime for filtering messages
+        end_date: Optional end datetime for filtering messages
+        limit: Maximum number of messages to return (default: 10)
+        page_token: Optional page token for pagination
+        
+    Returns:
+        Dictionary with 'messages' list (with sender info) and optional 'nextPageToken'
+        
+    Raises:
+        Exception: If authentication fails or message retrieval fails
+    """
+    result = await list_space_messages(
+        space_name, 
+        start_date, 
+        end_date, 
+        include_sender_info=True,
+        page_size=limit,
+        page_token=page_token
+    )
+    return result
+
+async def get_conversation_participants(space_name: str, 
+                                  start_date: Optional[datetime.datetime] = None,
+                                  end_date: Optional[datetime.datetime] = None,
+                                  page_size: int = 100) -> List[Dict]:
+    """Gets information about participants in a conversation or space.
+    
+    Args:
+        space_name: The name/identifier of the space
+        start_date: Optional start datetime for filtering messages
+        end_date: Optional end datetime for filtering messages
+        page_size: Maximum number of messages to check for participants (default: 100)
+        
+    Returns:
+        List of unique participants with their information
+        
+    Raises:
+        Exception: If authentication fails or API request fails
+    """
+    try:
+        # Get messages with sender info
+        result = await list_space_messages(
+            space_name, 
+            start_date, 
+            end_date, 
+            include_sender_info=True,
+            page_size=page_size
+        )
+        messages = result.get('messages', [])
+        
+        # Extract unique participants with info
+        participants = {}
+        for message in messages:
+            if "sender_info" in message and "id" in message["sender_info"]:
+                sender_id = message["sender_info"]["id"]
+                if sender_id not in participants:
+                    participants[sender_id] = message["sender_info"]
+        
+        return list(participants.values())
+        
+    except Exception as e:
+        raise Exception(f"Failed to get conversation participants: {str(e)}")
+        
+async def summarize_conversation(space_name: str, 
+                              message_limit: int = 10,
+                              start_date: Optional[datetime.datetime] = None,
+                              end_date: Optional[datetime.datetime] = None,
+                              page_token: Optional[str] = None,
+                              filter_str: Optional[str] = None) -> Dict:
+    """Generates a summary of a conversation in a space.
+    
+    Args:
+        space_name: The name/identifier of the space
+        message_limit: Maximum number of messages to include in summary
+        start_date: Optional start datetime for filtering messages
+        end_date: Optional end datetime for filtering messages
+        page_token: Optional page token for pagination
+        filter_str: Optional filter string in the format specified by Google Chat API
+        
+    Returns:
+        Dictionary containing space information, participants, and recent messages
+        
+    Raises:
+        Exception: If authentication fails or API request fails
+    """
+    try:
+        # Get space details
+        creds = get_credentials()
+        if not creds:
+            raise Exception("No valid credentials found. Please authenticate first.")
+            
+        service = build('chat', 'v1', credentials=creds)
+        space_details = service.spaces().get(name=space_name).execute()
+        
+        # Get messages with sender info
+        result = await list_space_messages(
+            space_name, 
+            start_date, 
+            end_date, 
+            include_sender_info=True,
+            page_size=message_limit,
+            page_token=page_token,
+            filter_str=filter_str
+        )
+        messages = result.get('messages', [])
+        next_page_token = result.get('nextPageToken')
+        
+        # Extract unique participants with info
+        participants = {}
+        for message in messages:
+            if "sender_info" in message and "id" in message["sender_info"]:
+                sender_id = message["sender_info"]["id"]
+                if sender_id not in participants:
+                    participants[sender_id] = message["sender_info"]
+        
+        # Build summary
+        summary = {
+            "space": {
+                "name": space_details.get("name"),
+                "display_name": space_details.get("displayName", "Unknown Space"),
+                "type": space_details.get("type", "Unknown Type")
+            },
+            "participants": list(participants.values()),
+            "participant_count": len(participants),
+            "messages": messages,
+            "message_count": len(messages),
+            "nextPageToken": next_page_token
+        }
+        
+        return summary
+        
+    except Exception as e:
+        raise Exception(f"Failed to summarize conversation: {str(e)}")
     

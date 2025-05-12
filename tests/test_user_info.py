@@ -127,10 +127,14 @@ class TestUserInfo(unittest.TestCase):
         mock_list_spaces.return_value = [{"name": self.test_space_name}]
         
         # Mock list_space_messages to return one message with mention and one without
-        mock_list_messages.return_value = [
-            self.test_message_with_mention,
-            self.test_message_without_mention
-        ]
+        # Use the new dictionary format
+        mock_list_messages.return_value = {
+            "messages": [
+                self.test_message_with_mention,
+                self.test_message_without_mention
+            ],
+            "nextPageToken": None
+        }
         
         # Mock spaces().get().execute() to get space details
         mock_space_details = {"displayName": "Test Space"}
@@ -148,11 +152,14 @@ class TestUserInfo(unittest.TestCase):
             loop.close()
             asyncio.set_event_loop(None)
         
-        # Check results - should only include the message with mention
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["name"], self.test_message_with_mention["name"])
-        self.assertEqual(result[0]["space_info"]["name"], self.test_space_name)
-        self.assertEqual(result[0]["space_info"]["displayName"], "Test Space")
+        # Check results - result now contains a dict with 'messages' key
+        self.assertIn('messages', result)
+        messages = result['messages']
+        # Should only include the message with mention
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0]["name"], self.test_message_with_mention["name"])
+        self.assertEqual(messages[0]["space_info"]["name"], self.test_space_name)
+        self.assertEqual(messages[0]["space_info"]["displayName"], "Test Space")
         
         # Verify mocks were called correctly
         mock_get_user_info.assert_called_once()
@@ -168,10 +175,14 @@ class TestUserInfo(unittest.TestCase):
         mock_get_user_info.return_value = self.test_user_info
         
         # Mock list_space_messages to return one message with mention and one without
-        mock_list_messages.return_value = [
-            self.test_message_with_mention,
-            self.test_message_without_mention
-        ]
+        # Use the new dictionary format
+        mock_list_messages.return_value = {
+            "messages": [
+                self.test_message_with_mention,
+                self.test_message_without_mention
+            ],
+            "nextPageToken": None
+        }
         
         # Mock spaces().get().execute() to get space details
         mock_space_details = {"displayName": "Test Space"}
@@ -189,9 +200,12 @@ class TestUserInfo(unittest.TestCase):
             loop.close()
             asyncio.set_event_loop(None)
         
-        # Check results - should only include the message with mention
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["name"], self.test_message_with_mention["name"])
+        # Check results - result now contains a dict with 'messages' key
+        self.assertIn('messages', result)
+        messages = result['messages']
+        # Should only include the message with mention
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0]["name"], self.test_message_with_mention["name"])
         
         # Verify mocks - list_chat_spaces should not be called when space_id is provided
         mock_get_user_info.assert_called_once()

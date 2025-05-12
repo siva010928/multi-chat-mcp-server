@@ -62,8 +62,11 @@ class TestSearchBatchOperations(unittest.TestCase):
         # Mock list_chat_spaces to return one space
         mock_list_spaces.return_value = [{"name": self.test_space_name}]
         
-        # Mock list_space_messages to return test messages
-        mock_list_messages.return_value = self.test_messages
+        # Mock list_space_messages to return test messages with the new dict format
+        mock_list_messages.return_value = {
+            "messages": self.test_messages,
+            "nextPageToken": None
+        }
         
         # Run the coroutine
         loop = asyncio.get_event_loop()
@@ -71,11 +74,13 @@ class TestSearchBatchOperations(unittest.TestCase):
             google_chat.search_messages(self.test_query)
         )
         
-        # Check results
-        self.assertEqual(len(result), 2)
-        self.assertEqual(result[0]["name"], self.test_messages[0]["name"])
-        self.assertEqual(result[1]["name"], self.test_messages[1]["name"])
-        self.assertEqual(result[0]["space_info"]["name"], self.test_space_name)
+        # Check results - result now contains a dict with 'messages' key
+        self.assertIn('messages', result)
+        messages = result['messages']
+        self.assertEqual(len(messages), 2)
+        self.assertEqual(messages[0]["name"], self.test_messages[0]["name"])
+        self.assertEqual(messages[1]["name"], self.test_messages[1]["name"])
+        self.assertEqual(messages[0]["space_info"]["name"], self.test_space_name)
         
         # Verify mocks were called correctly
         mock_list_spaces.assert_called_once()
@@ -84,8 +89,11 @@ class TestSearchBatchOperations(unittest.TestCase):
     @mock.patch('google_chat.list_space_messages')
     def test_search_messages_with_spaces(self, mock_list_messages):
         """Test searching messages in specific spaces"""
-        # Mock list_space_messages to return test messages
-        mock_list_messages.return_value = self.test_messages
+        # Mock list_space_messages to return test messages with the new dict format
+        mock_list_messages.return_value = {
+            "messages": self.test_messages,
+            "nextPageToken": None
+        }
         
         # Test spaces to search
         test_spaces = [self.test_space_name]
@@ -96,8 +104,10 @@ class TestSearchBatchOperations(unittest.TestCase):
             google_chat.search_messages(self.test_query, spaces=test_spaces)
         )
         
-        # Check results
-        self.assertEqual(len(result), 2)
+        # Check results - result now contains a dict with 'messages' key
+        self.assertIn('messages', result)
+        messages = result['messages']
+        self.assertEqual(len(messages), 2)
         
         # Verify mock was called with the provided space
         mock_list_messages.assert_called_once()

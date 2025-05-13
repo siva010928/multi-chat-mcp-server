@@ -1,0 +1,51 @@
+search_modes:
+  - name: "regex"  # Moved to top position to be the default
+    enabled: true
+    description: "Regular expression pattern matching - case insensitive by default. Best for exact terms with variations like CI/CD, CICD, ci-cd, etc."
+    weight: 1.2
+    options:
+      ignore_case: true
+      dot_all: false
+      unicode: true
+      max_pattern_length: 1000
+    
+  - name: "exact"
+    enabled: true
+    description: "Basic case-insensitive substring matching - fastest but least flexible. Only matches complete substrings."
+    weight: 1.0
+    
+  - name: "semantic"
+    enabled: true
+    description: "Meaning-based semantic search - best for concept searching. Finds related messages even when exact words differ."
+    weight: 1.5
+    options:
+      model: "all-MiniLM-L6-v2"  # Free SentenceTransformers model
+      cache_embeddings: true
+      cache_max_size: 10000  # Maximum number of cached message embeddings
+      similarity_threshold: 0.2  # Lower threshold = more matches (but potentially less relevant)
+      similarity_metric: "cosine"  # Options: cosine, dot, euclidean
+  
+  - name: "hybrid"
+    enabled: true
+    description: "Combined search using multiple modes - comprehensive but may be slower. Uses regex, semantic and exact search together."
+    weight: 0.8
+    modes:
+      - "regex"
+      - "semantic"
+      - "exact"
+
+search:
+  default_mode: "regex"  # Default mode is regex - case insensitive pattern matching
+  max_results_per_space: 50
+  combine_results_strategy: "weighted_score"
+  
+  # Hybrid search weights
+  hybrid_weights:
+    exact: 1.0
+    regex: 1.2
+    semantic: 1.5
+    
+  # For pagination and API limits
+  pagination:
+    default_page_size: 50
+    max_page_size: 100 

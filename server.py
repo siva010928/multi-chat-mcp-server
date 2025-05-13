@@ -52,6 +52,10 @@ async def get_space_messages(space_name: str,
     Messages can be filtered by time range, sorted, and paginated. This function allows you to
     view historical messages in a conversation, find specific content, or analyze communication patterns.
     
+    NOTE: Use this tool only when you need raw message history without filtering by content.
+    If you're looking for specific messages by content, use search_messages instead.
+    DO NOT call this after search_messages - search_messages already provides complete message data.
+    
     This tool requires OAuth authentication. The space_name should be in the format
     'spaces/your_space_id'. Dates should be in YYYY-MM-DD format (e.g., '2024-03-22').
     
@@ -88,6 +92,7 @@ async def get_space_messages(space_name: str,
           - sender_info: Additional sender details if include_sender_info=True
           - Other message properties like attachments, annotations, etc.
         - nextPageToken: Token for retrieving the next page of results, or null if no more results
+        - source: "get_space_messages" (to help differentiate from other message retrieval tools)
     
     Raises:
         ValueError: If the date format is invalid or dates are in wrong order
@@ -120,7 +125,7 @@ async def get_space_messages(space_name: str,
         raise e
     
     # Call the updated list_space_messages function
-    return await list_space_messages(
+    result = await list_space_messages(
         space_name, 
         start_datetime, 
         end_datetime, 
@@ -131,6 +136,12 @@ async def get_space_messages(space_name: str,
         order_by=order_by,
         show_deleted=show_deleted
     )
+    
+    # Add source marker to help LLMs understand this is from get_space_messages
+    if isinstance(result, dict):
+        result["source"] = "get_space_messages"
+        
+    return result
 
 @mcp.tool()
 async def send_message(space_name: str, text: str) -> Dict:
@@ -503,67 +514,152 @@ async def delete_chat_message(message_name: str) -> Dict:
 # Enhanced Google Chat operations
 
 @mcp.tool()
-async def search_messages(query: str, spaces: List[str] = None, max_results: int = 50, 
-                    include_sender_info: bool = False, page_token: str = None,
-                    filter_str: str = None, order_by: str = None) -> Dict:
+async def search_messages(query: str, 
+                        search_mode: str = None,
+                        spaces: List[str] = None, 
+                        max_results: int = 50,
+                        include_sender_info: bool = False, 
+                        start_date: str = None,
+                        end_date: str = None,
+                        filter_str: str = None) -> Dict:
     """Search for messages across all spaces or specified spaces.
     
-    Performs a text-based search for messages containing the specified query text 
-    across all accessible spaces or a defined list of spaces. This is useful for 
-    finding specific messages or topics discussed in any conversation.
-    
-    This tool works by retrieving messages from each relevant space and filtering them 
-    to find matches containing the query text. The search is case-insensitive.
-    
-    This tool requires OAuth authentication with appropriate space and message access permissions.
+    This tool performs advanced search for messages in Google Chat spaces using various search strategies.
+    It's the primary tool for finding specific content in conversations by supporting multiple search modes
+    including regex pattern matching, semantic search, and exact substring matching.
     
     Args:
-        query: The search query string. Text to search for within messages. The search is 
-              case-insensitive and finds messages where this text appears anywhere in the message content.
-        spaces: Optional list of space names to search in. Each space name should be in the format
-               'spaces/{space_id}'. If None (default), searches across all accessible spaces.
-        max_results: Maximum number of results to return in total (default: 50).
-                    When searching multiple spaces, results are collected until this limit is reached.
-                    When searching a single space, this is used as the page size.
-        include_sender_info: Whether to include detailed sender information in the returned messages.
-                            When true, each message will include a sender_info object with details
-                            like email, display_name, and profile_photo. (default: False)
-        page_token: Optional page token for pagination (only applicable when searching a single space).
-                   Use the nextPageToken from a previous response to get the next page of results.
-        filter_str: Optional filter string in the format specified by Google Chat API.
-                   For example: 'createTime > "2023-04-21T11:30:00-04:00"'
-                   Used to restrict message retrieval before text-based filtering is applied.
-        order_by: How messages are ordered before filtering, format: "<field> <direction>",
-                 e.g., "createTime DESC". Default is typically chronological (createTime ASC).
+        query: The search query string. Format depends on the search_mode:
+               - For "regex" (default): Regular expression pattern like "ci[ /\\-_]?cd" to find "CI/CD" in any format
+               - For "semantic": Natural language description like "continuous integration pipeline"
+               - For "exact": Simple substring like "meeting notes"
+               
+               IMPORTANT NOTES:
+               - Regex searches are case-insensitive by default ("cicd" will match "CICD")
+               - For finding specific terms with variations, use regex search
+               - For concept/meaning-based search, use semantic search
+               - When using regex special characters like []/()-+*?, escape them with \\ (e.g., "CI\\/CD")
         
+        search_mode: The search strategy to use. One of:
+                    - "regex" (DEFAULT): Pattern-based search that supports wildcards and symbols
+                    - "semantic": Meaning-based search that can find conceptually related messages
+                    - "exact": Simple substring search (fastest but least flexible)
+                    - "hybrid": Combines multiple search approaches
+                    
+                    If not specified, "regex" is used as the default mode.
+        
+        spaces: Optional list of space names to search in. Format: ["spaces/SPACE_ID1", "spaces/SPACE_ID2"]
+                If None, searches across all accessible spaces.
+        
+        max_results: Maximum number of results to return (default: 50).
+        
+        include_sender_info: When True, adds detailed sender information to each message including
+                            email address, display name, and profile photo URL (default: False).
+        
+        start_date: Optional start date in YYYY-MM-DD format (e.g., "2024-05-01").
+                   Only messages from this date forward will be included.
+        
+        end_date: Optional end date in YYYY-MM-DD format (e.g., "2024-05-05").
+                 Only messages up to this date will be included.
+        
+        filter_str: Optional additional filter string for the API.
+    
     Returns:
         Dictionary containing:
-        - messages: List of message objects matching the search query, each with properties like:
-          - name: Resource name of the message (string)
-          - text: Content of the message (string) containing the query
-          - sender: Information about who sent the message (object)
-          - createTime: When the message was created (timestamp)
-          - space_info: Added information about the space the message is from
-          - sender_info: Additional sender details if include_sender_info=True
-          - Other standard message properties
-        - nextPageToken: Token for retrieving the next page of results, or null if no more results
-                        (Only present when searching with a single space)
-    
-    API Reference:
-        https://developers.google.com/chat/api/reference/rest/v1/spaces.messages/list
-        (The search functionality is built on top of the list method with text filtering)
+        - messages: List of message objects matching the search query, each including:
+          - name: Resource name of the message
+          - text: Content of the message
+          - sender: Information about who sent the message
+          - space_info: Details about the space containing the message
+          - createTime: When the message was created
+          - All other standard message properties
+        - nextPageToken: Token for retrieving the next page of results (if applicable)
+        - source: "search_messages" (to help differentiate from other message retrieval tools)
+        
+    Best Practices:
+        1. For exact terms (like "CICD" or "CI/CD"), use regex search with appropriate patterns:
+           - "(?i)cicd|ci[ /\\-_]?cd" will match any variation of CI/CD
+           - For multiple terms, use patterns like: "docker.*storage|storage.*docker" 
+           - Use word boundaries with \\b for whole word matches: "\\bpipeline\\b"
+        
+        2. For concept searches (finding messages about a topic), use semantic search:
+           - search_mode="semantic", query="continuous integration"
+           - Semantic search finds related concepts even if exact words differ
+        
+        3. When searching for messages within a date range, provide both start_date and end_date
+        
+        4. If you need to find messages in a specific space, always provide the space_id
+        
+        5. This tool provides complete message data - DO NOT call get_space_messages after 
+           using search_messages unless you specifically need unfiltered message history
+        
+    Examples:
+        # Find messages containing "cicd" or "CI/CD" in any form using regex (best for exact terms)
+        search_messages(
+            query="(?i)cicd|ci[ /\\-_]?cd",
+            search_mode="regex",
+            spaces=["spaces/AAQAXL5fJxI"]
+        )
+        
+        # Find messages about continuous integration or pipelines using semantic search
+        search_messages(
+            query="continuous integration pipeline",
+            search_mode="semantic",
+            spaces=["spaces/AAQAXL5fJxI"]
+        )
+        
+        # Find messages containing the word "pipeline" from May 10-13, 2025
+        search_messages(
+            query="pipeline",
+            search_mode="regex",
+            start_date="2025-05-10",
+            end_date="2025-05-13",
+            spaces=["spaces/AAQAXL5fJxI"]
+        )
+        
+        # Find messages about docker storage issues
+        search_messages(
+            query="docker.*storage|storage.*docker",
+            search_mode="regex",
+            spaces=["spaces/AAQAXL5fJxI"]
+        )
     """
-    from google_chat import search_messages
+    from advanced_search_integration import advanced_search_messages
     
-    return await search_messages(
-        query, 
-        spaces, 
-        max_results, 
-        include_sender_info, 
-        page_token,
-        filter_str,
-        order_by
+    result = await advanced_search_messages(
+        query=query,
+        search_mode=search_mode,
+        spaces=spaces,
+        max_results=max_results,
+        include_sender_info=include_sender_info,
+        start_date=start_date,
+        end_date=end_date,
+        filter_str=filter_str
     )
+    
+    # Add source marker to help LLMs understand this is from search_messages
+    if isinstance(result, dict):
+        result["source"] = "search_messages"
+        
+    return result
+
+# Deprecated - kept for backward compatibility but not exposed in API docs
+# @mcp.tool(visible=False)
+# async def basic_search_messages(query: str, spaces: List[str] = None, max_results: int = 50, 
+#                     include_sender_info: bool = False, page_token: str = None,
+#                     filter_str: str = None, order_by: str = None) -> Dict:
+#     """[DEPRECATED] Basic text search for messages. Use the main search_messages function instead."""
+#     from google_chat import search_messages as api_search_messages
+    
+#     return await api_search_messages(
+#         query, 
+#         spaces, 
+#         max_results, 
+#         include_sender_info, 
+#         page_token,
+#         filter_str,
+#         order_by
+#     )
 
 @mcp.tool()
 async def manage_space_members(space_name: str, operation: str, user_emails: List[str]) -> Dict:

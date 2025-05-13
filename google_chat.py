@@ -776,14 +776,28 @@ async def search_messages(query: str, spaces: List[str] = None, max_results: int
             messages = result.get('messages', [])
             next_page_token = result.get('nextPageToken')
             
-            # Filter messages by query
-            matched_messages = []
-            for msg in messages:
-                text = msg.get("text", "").lower()
-                if query.lower() in text:
-                    # Add space information to the message
-                    msg["space_info"] = {"name": space_name}
-                    matched_messages.append(msg)
+            # Filter messages by query - using regex for more robust matching
+            import re
+            try:
+                # Try to compile as regex first
+                pattern = re.compile(query, re.IGNORECASE)
+                matched_messages = []
+                for msg in messages:
+                    text = msg.get("text", "")
+                    if text and pattern.search(text):
+                        # Add space information to the message
+                        msg["space_info"] = {"name": space_name}
+                        matched_messages.append(msg)
+            except re.error:
+                # Fallback to substring search if regex fails
+                matched_messages = []
+                query_lower = query.lower()
+                for msg in messages:
+                    text = msg.get("text", "").lower()
+                    if query_lower in text:
+                        # Add space information to the message
+                        msg["space_info"] = {"name": space_name}
+                        matched_messages.append(msg)
             
             return {
                 'messages': matched_messages,
@@ -806,20 +820,39 @@ async def search_messages(query: str, spaces: List[str] = None, max_results: int
                 )
                 messages = result.get('messages', [])
                 
-                # Filter messages by query
-                for msg in messages:
-                    text = msg.get("text", "").lower()
-                    if query.lower() in text:
-                        # Add space information to the message
-                        msg["space_info"] = {"name": space_name}
-                        all_results.append(msg)
-                        
-                        if len(all_results) >= max_results:
-                            return {
-                                'messages': all_results[:max_results],
-                                'nextPageToken': None  # No pagination when limited by max_results
-                            }
-            except Exception:
+                # Filter messages by query - using regex for more robust matching
+                import re
+                try:
+                    # Try to compile as regex first
+                    pattern = re.compile(query, re.IGNORECASE)
+                    for msg in messages:
+                        text = msg.get("text", "")
+                        if text and pattern.search(text):
+                            # Add space information to the message
+                            msg["space_info"] = {"name": space_name}
+                            all_results.append(msg)
+                            
+                            if len(all_results) >= max_results:
+                                return {
+                                    'messages': all_results[:max_results],
+                                    'nextPageToken': None  # No pagination when limited by max_results
+                                }
+                except re.error:
+                    # Fallback to substring search if regex fails
+                    query_lower = query.lower()
+                    for msg in messages:
+                        text = msg.get("text", "").lower()
+                        if query_lower in text:
+                            # Add space information to the message
+                            msg["space_info"] = {"name": space_name}
+                            all_results.append(msg)
+                            
+                            if len(all_results) >= max_results:
+                                return {
+                                    'messages': all_results[:max_results],
+                                    'nextPageToken': None  # No pagination when limited by max_results
+                                }
+            except Exception as e:
                 # If we fail to search one space, continue with others
                 continue
                 

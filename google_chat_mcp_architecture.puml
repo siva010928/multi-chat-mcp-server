@@ -1,0 +1,100 @@
+@startuml Google Chat MCP Server Architecture
+
+' Define styles for better visualization
+skinparam {
+  ComponentStyle uml2
+  BackgroundColor white
+  ArrowColor #666666
+  BorderColor #666666
+  FontName Arial
+  FontSize 12
+}
+
+' Define the components
+package "MCP Client (Cursor)" {
+  [Claude AI Assistant] as Claude #E2F0FF
+  [MCP Client] as MCPClient #E2F0FF
+}
+
+package "Google Chat MCP Server" #EEEEEE {
+  [FastMCP Server] as FastMCP #D1FFC2
+  [Google Chat API Client] as APIClient #D1FFC2
+  [Authentication System] as Auth #D1FFC2
+  [Token Manager] as TokenManager #D1FFC2
+  
+  database "token.json" as TokenDB #FFECB3
+  file "credentials.json" as CredFile #FFECB3
+}
+
+cloud "Google Cloud" #F1F5F9 {
+  [Google Chat API] as GoogleChatAPI #D5E8FB
+  [People API] as PeopleAPI #D5E8FB
+  [OAuth 2.0] as OAuth #D5E8FB
+}
+
+' Define relationships
+Claude --> MCPClient : requests\nGoogle Chat\noperations
+MCPClient --> FastMCP : invokes MCP tools
+FastMCP --> APIClient : calls API functions
+APIClient --> GoogleChatAPI : makes API requests
+APIClient --> PeopleAPI : gets user info
+Auth --> OAuth : authenticates
+Auth --> TokenDB : stores/retrieves\ntokens
+TokenManager --> TokenDB : manages\ntoken lifecycle
+Auth --> CredFile : reads client\ncredentials
+
+' Tech stack and libraries
+rectangle "Technology Stack" as TechStack #ECECFF {
+  card "Backend" as Backend {
+    component "Python 3.9+" as Python #E1F5FE
+    component "FastAPI" as FastAPI #E1F5FE
+    component "Uvicorn" as Uvicorn #E1F5FE
+  }
+  
+  card "Libraries" as Libs {
+    component "FastMCP >= 0.1.0" as FastMCPLib #E1F5FE
+    component "Google API Client" as GoogleAPIClient #E1F5FE
+    component "Google Auth OAuth" as GoogleAuthOAuth #E1F5FE
+    component "HTTPX >= 0.24.0" as HTTPX #E1F5FE
+  }
+  
+  card "Testing" as Testing {
+    component "Pytest" as Pytest #E1F5FE
+    component "Coverage" as Coverage #E1F5FE
+  }
+}
+
+' Relationship between components and tech stack
+APIClient .up.> GoogleAPIClient : uses
+TokenManager .up.> GoogleAuthOAuth : uses
+FastMCP .up.> FastMCPLib : built with
+FastMCP .up.> FastAPI : runs on
+FastAPI .up.> Uvicorn : served by
+Auth .up.> GoogleAuthOAuth : handles OAuth
+
+' Define component relationships with more details
+note right of FastMCP
+  Exposes MCP tools:
+  - get_chat_spaces()
+  - send_message()
+  - get_space_messages()
+  - reply_to_message_thread()
+  - etc.
+end note
+
+note right of TokenManager
+  - Auto-refreshes expired tokens
+  - Persists tokens to disk
+  - Handles token validation
+end note
+
+note right of APIClient
+  Implements async functions for:
+  - Space management
+  - Messaging
+  - User information
+  - Search & filtering
+  - Batch operations
+end note
+
+@enduml 

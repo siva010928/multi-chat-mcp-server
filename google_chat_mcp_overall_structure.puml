@@ -1,0 +1,64 @@
+@startuml Google Chat MCP Server - System Overview
+
+!define RECTANGLE class
+
+RECTANGLE "AI Assistant (Claude)" as Claude {
+  + Natural Language Processing
+  + MCP Tool Invocation
+  + Task Execution
+}
+
+RECTANGLE "MCP Client (Cursor)" as Cursor {
+  + Tool Registry
+  + MCP Protocol Client
+  + JSON-RPC Communication
+}
+
+RECTANGLE "Google Chat MCP Server" as Server {
+  + FastMCP Framework
+  + Tool Implementations
+  + Authentication Management
+  + API Client Functions
+}
+
+RECTANGLE "Google Chat API" as GoogleAPI {
+  + Spaces
+  + Messages
+  + Members
+  + Threads
+}
+
+RECTANGLE "User's Workspace Account" as UserWorkspace {
+  + Google Chat Spaces
+  + Messages
+  + User Profile
+}
+
+' Data flow
+Claude -right-> Cursor : "Request: 'Send message to team'"
+Cursor -right-> Server : "MCP Tool Call: mcp_google_chat_send_message"
+Server -right-> GoogleAPI : "API Request: POST spaces/{space}/messages"
+GoogleAPI -right-> UserWorkspace : "Create message in space"
+
+UserWorkspace -left-> GoogleAPI : "New message data"
+GoogleAPI -left-> Server : "API Response: message object"
+Server -left-> Cursor : "MCP Response: success + message ID"
+Cursor -left-> Claude : "Result: 'Message sent successfully'"
+
+' Additional notes
+note bottom of Claude
+  AI assistants invoke Google Chat operations
+  through the MCP protocol
+end note
+
+note bottom of Server
+  Handles authentication and token refresh
+  without requiring user intervention
+end note
+
+note bottom of UserWorkspace
+  User's Google Workspace account must have
+  Google Chat API enabled
+end note
+
+@enduml 

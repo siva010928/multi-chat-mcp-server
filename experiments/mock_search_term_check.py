@@ -10,7 +10,7 @@ from advanced_search_integration import advanced_search_messages
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("test_api_direct")
 
-async def test_search_term(term, search_mode="regex"):
+async def run_search_term(term, search_mode="regex"):
     """Test a specific search term with the specified search mode."""
     space_id = "spaces/AAQAXL5fJxI"  # Team space ID
     
@@ -47,15 +47,15 @@ async def main():
     """Test multiple search terms with regex and semantic search."""
     # Test with regex search
     print("\n======= REGEX SEARCH RESULTS =======")
-    cicd_regex_count = await test_search_term("cicd", "regex")
-    ci_cd_regex_count = await test_search_term("ci/cd", "regex")
-    pipeline_regex_count = await test_search_term("pipeline", "regex")
+    cicd_regex_count = await run_search_term("cicd", "regex")
+    ci_cd_regex_count = await run_search_term("ci/cd", "regex")
+    pipeline_regex_count = await run_search_term("pipeline", "regex")
     
     # Test with semantic search
     print("\n======= SEMANTIC SEARCH RESULTS =======")
-    cicd_semantic_count = await test_search_term("cicd", "semantic")
-    ci_cd_semantic_count = await test_search_term("ci/cd", "semantic")
-    pipeline_semantic_count = await test_search_term("pipeline", "semantic")
+    cicd_semantic_count = await run_search_term("cicd", "semantic")
+    ci_cd_semantic_count = await run_search_term("ci/cd", "semantic")
+    pipeline_semantic_count = await run_search_term("pipeline", "semantic")
     
     # Summary
     print("\n======= SEARCH RESULTS SUMMARY =======")

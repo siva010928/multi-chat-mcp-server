@@ -1,6 +1,165 @@
-# Google Chat MCP Server
+# Google Chat MCP Extension
 
-A Model Control Protocol (MCP) server for interacting with Google Chat through Claude and other AI assistants in MCP clients like Cursor.
+This project is an MCP (Multimodal Conversation Processing) extension for Google Chat, allowing AI assistants to interact with Google Chat through a variety of tools and capabilities.
+
+## Setup and Authentication
+
+Please refer to the following documents for setup instructions:
+
+- [Authentication Flow](TOKEN_MANAGEMENT.md)
+- [Testing Guide](TESTING.md)
+
+## Features
+
+- List available Google Chat spaces
+- Retrieve messages from spaces
+- Search messages with advanced filtering
+- Send text messages and attachments
+- Manage space membership
+- And more!
+
+## Search Functionality
+
+The Google Chat MCP provides powerful search capabilities through the `search_messages` tool. This allows searching for messages across all spaces or in specific spaces using different search modes.
+
+### Search Modes
+
+#### Regex Search (Default)
+Pattern-based search using regular expressions. Best for finding specific terms or patterns with variations.
+
+**Example queries:**
+```
+"cicd"                       - Matches "cicd" (case-insensitive)
+"(?i)cicd|ci[ /\-_]?cd"      - Matches "CICD", "CI/CD", "CI-CD", etc.
+"docker.*storage"            - Matches "docker storage" or "docker temp storage"
+"\bpipeline\b"               - Matches the word "pipeline" but not "pipelines" 
+```
+
+**Important Note for CI/CD searches:**
+
+When searching for CICD or CI/CD content, remember that regex search is case-insensitive by default:
+
+```
+"cicd"                       - Will match "CICD pipeline", "cicd notification", etc.
+"cicd.*pipeline"             - Specifically finds "CICD pipeline" mentions
+"(?i)cicd|ci[ /\\-_]?cd"     - More comprehensive pattern for all CI/CD variations
+```
+
+The default regex search already handles case insensitivity, so "cicd" will match "CICD".
+
+#### Semantic Search
+Meaning-based search using embeddings. Best for finding conceptually related messages.
+
+**Example queries:**
+```
+"continuous integration"     - Will find messages about CI/CD, pipelines, etc.
+"deployment issues"          - Will find messages about problems with deploys
+"team meeting schedule"      - Will find messages about planning meetings
+```
+
+#### Exact Search
+Basic substring matching. Fastest but least flexible.
+
+**Example queries:**
+```
+"error message"              - Will only find messages containing "error message"
+"CI/CD"                      - Will only find messages with "CI/CD" exactly as written
+```
+
+#### Hybrid Search
+Combines multiple search approaches for comprehensive results.
+
+### Best Practices
+
+1. For finding specific messages with exact terms, use **regex search** with these patterns:
+   - For case-insensitive search: `(?i)term`
+   - For variations of terms: `word1[ -_]?word2` (matches word1-word2, word1_word2)
+   - For word boundaries: `\bword\b`
+
+2. For concept searching (finding messages about a topic), use **semantic search**
+
+3. Always specify `spaces` parameter with space IDs when you know which space to search
+
+4. Use both `start_date` and `end_date` to narrow results to a time range
+
+5. For searching multiple variations of a term, use the OR operator `|`:
+   ```
+   "cicd|ci-cd|ci/cd"          - Will match any of these variations
+   ```
+
+6. For contextual searches, use patterns that look for related terms:
+   ```
+   "cicd.*pipeline|pipeline.*cicd"  - Finds messages with both terms in either order
+   ```
+
+### Common Issues
+
+1. **Not finding messages that should match:**
+   - Try using regex mode with `(?i)` prefix for case-insensitivity
+   - Ensure your regex pattern is properly escaped (especially `\`, `/`, etc.)
+   - Consider using semantic search for concept-based queries
+
+2. **Too many irrelevant results:**
+   - Use more specific regex patterns with word boundaries `\b`
+   - Narrow down by date range
+   - Consider combining search terms with AND patterns
+
+3. **Finding variations of CI/CD:**
+   - Remember regex search is case-insensitive by default
+   - For comprehensive CI/CD search use: `(?i)cicd|ci[ /\-_]?cd`
+   - For more specific context: `(?i)(cicd|ci[ /\-_]?cd).*pipeline`
+
+See [ADVANCED_SEARCH.md](ADVANCED_SEARCH.md) for more detailed information and examples.
+
+## Features
+
+- Get chat spaces
+- List messages from spaces
+- Send messages to spaces
+- Reply to message threads
+- Get user mentions
+- Get user information
+- **Advanced Search** - Search messages using regex and semantic capabilities
+
+## Advanced Search
+
+This MCP now includes powerful search capabilities:
+
+- **Exact Search**: Basic case-insensitive substring matching
+- **Regex Search**: Regular expression pattern matching for advanced text queries 
+- **Semantic Search**: Meaning-based search that finds conceptually related messages
+- **Hybrid Search**: Combines multiple search methods for best results
+
+See [ADVANCED_SEARCH.md](ADVANCED_SEARCH.md) for detailed documentation.
+
+## Setup
+
+1. Create a Google Cloud project
+2. Enable the Google Chat API
+3. Set up OAuth credentials
+4. Download the credentials.json file
+5. Install dependencies: `pip install -r requirements.txt`
+
+To enable semantic search capabilities, make sure the optional dependencies are installed:
+```bash
+pip install numpy sentence-transformers
+```
+
+## Usage
+
+Run the server:
+```bash
+python server.py
+```
+
+For authentication setup:
+```bash
+python server.py -local-auth
+```
+
+## Configuration
+
+Search functionality can be configured via `search_config.yaml`.
 
 ## Project Overview
 

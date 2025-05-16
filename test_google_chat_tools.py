@@ -10,6 +10,7 @@ import os
 import sys
 from datetime import datetime, timedelta
 from pprint import pprint
+import traceback
 
 from src.google_chat.advanced_search import advanced_search_messages
 
@@ -20,6 +21,8 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 from src.google_chat.auth import get_credentials, get_current_user_info, get_user_info_by_id
 from src.google_chat import messages, spaces, summary, advanced_search
 
+# Test space and thread for our tests
+TEST_SPACE = "spaces/AAQAXL5fJxI"
 
 async def test_authentication():
     """Test if authentication is working."""
@@ -212,10 +215,11 @@ async def test_list_messages_with_sender_info(space_name):
     except Exception as e:
         print(f"❌ Error: {str(e)}")
 
-async def test_search_messages(query):
-    """Test searching messages."""
-    print(f"\n=== Testing search_messages with query '{query}' ===")
+async def test_search_messages(query="update"):
+    """Test searching for messages."""
+    print("\n=== Testing search_messages ===")
     try:
+        print(f"Searching for '{query}'...")
         result = await advanced_search_messages(
             query=query,
             search_mode="semantic",
@@ -225,11 +229,39 @@ async def test_search_messages(query):
             include_sender_info=True
         )
         
-        msgs = result.get("messages", [])
-        print(f"✅ Search found {len(msgs)} messages")
+        if result and "messages" in result:
+            print(f"✅ Found {len(result['messages'])} messages matching query")
+            if result['messages']:
+                msg = result['messages'][0]
+                print(f"   First result: {msg['text'][:50]}..." if len(msg['text']) > 50 else msg['text'])
+        else:
+            print("❌ No messages found for query")
+        
+        # Now test with date filter
+        print(f"\nSearching for '{query}' with date filter...")
+        result = await advanced_search_messages(
+            query=query,
+            search_mode="semantic",
+            spaces=[
+                "spaces/AAQAXL5fJxI"  # Replace with your space ID
+            ],
+            include_sender_info=True,
+            start_date="2025-05-01",
+            end_date="2025-05-31"
+        )
+        
+        if result and "messages" in result:
+            print(f"✅ Found {len(result['messages'])} messages with date filter")
+            if result['messages']:
+                msg = result['messages'][0]
+                print(f"   First result: {msg['text'][:50]}..." if len(msg['text']) > 50 else msg['text'])
+        else:
+            print("✅ No messages found within date range (expected if no matches)")
+            
         return result
     except Exception as e:
         print(f"❌ Error: {str(e)}")
+        traceback.print_exc()
 
 async def test_get_my_mentions():
     """Test getting mentions of the current user."""
@@ -327,6 +359,70 @@ async def test_manage_space_members(space_name, operation="add", emails=None):
     except Exception as e:
         print(f"❌ Error: {str(e)}")
 
+async def test_list_messages():
+    """Test list_messages with different date filters"""
+    print("\n=== Testing list_messages ===")
+    
+    # Get today's date
+    today = datetime.datetime.now()
+    today_str = today.strftime('%Y-%m-%d')
+    
+    print(f"\n1. Getting messages from today ({today_str}):")
+    result = await messages.list_space_messages(TEST_SPACE, start_date=today_str, page_size=5)
+    print(f"Messages found: {len(result['messages'])}")
+    for idx, msg in enumerate(result['messages'][:2]):
+        print(f"Message {idx+1} time: {msg.get('createTime')}")
+    
+    # Test with specific date range
+    print("\n2. Getting messages from specific period:")
+    result = await messages.list_space_messages(
+        TEST_SPACE, 
+        start_date="2025-05-01", 
+        end_date="2025-05-15",
+        page_size=5
+    )
+    print(f"Messages found: {len(result['messages'])}")
+    
+    return True
+
+async def test_message_operations():
+    """Test basic message operations"""
+    print("\n=== Testing message operations ===")
+    
+    # Create a test message
+    print("\n1. Creating test message:")
+    message = await messages.create_message(
+        TEST_SPACE,
+        text="Test message created by diagnostic script"
+    )
+    message_name = message.get('name')
+    print(f"Message created: {message_name}")
+    
+    # Get the message
+    print("\n2. Retrieving message:")
+    message = await messages.get_message(message_name)
+    print(f"Message retrieved: {message.get('text')}")
+    
+    return True
+
+async def test_summary_tools():
+    """Test summary-related tools"""
+    print("\n=== Testing summary tools ===")
+    
+    # Test mentions
+    print("\n1. Getting recent mentions (last 7 days):")
+    mentions = await get_my_mentions(days=7)
+    print(f"Mentions found: {len(mentions.get('messages', []))}")
+    
+    # Test conversation summary
+    print("\n2. Getting conversation summary:")
+    summary = await summarize_conversation(TEST_SPACE, message_limit=5)
+    print(f"Space: {summary.get('space', {}).get('display_name')}")
+    print(f"Participants: {summary.get('participant_count')}")
+    print(f"Messages: {summary.get('message_count')}")
+    
+    return True
+
 async def main():
     """Main function to run all tests."""
     print("Starting Google Chat MCP Tool Tests")
@@ -370,6 +466,9 @@ async def main():
     
     # Test space member management
     await test_manage_space_members(space_name)
+    
+    # Test summary tools
+    await test_summary_tools()
     
     # Finally, test deleting a message (if we want to clean up)
     # Uncomment these if you want to delete the test messages

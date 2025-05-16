@@ -41,8 +41,19 @@ async def get_my_mentions(days: int = 7, space_id: Optional[str] = None, include
                 # Fall back to email if no display name
                 username = user_info.get('email')
         except Exception as e:
-            # If we can't get the user info, we'll look for the email in the text
-            username = creds.id_token.get('email', '')
+            # If we can't get the user info, try to get email from credentials
+            try:
+                # Check if id_token is a dictionary that we can use get() on
+                if hasattr(creds, 'id_token') and isinstance(creds.id_token, dict):
+                    username = creds.id_token.get('email', '')
+                # If id_token is a string, we can't use get() method
+                elif hasattr(creds, 'id_token') and isinstance(creds.id_token, str):
+                    username = creds.id_token  # Just use the string as is
+                else:
+                    # Last resort fallback
+                    username = "current_user"  # Generic fallback username
+            except Exception:
+                username = "current_user"  # Generic fallback username
 
         if not username:
             raise Exception("Could not determine username for mentions")

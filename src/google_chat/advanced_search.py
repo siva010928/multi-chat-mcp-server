@@ -119,19 +119,34 @@ async def advanced_search_messages(
             )
             logger.info(f"Parsed start_datetime: {start_datetime}, isoformat: {start_datetime.isoformat()}")
             
+            # Note the message createTime format: "2025-05-13T16:58:05.935391Z"
             if end_date:
                 end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d').replace(
                     hour=23, minute=59, second=59, microsecond=999999, tzinfo=datetime.timezone.utc
                 )
-                logger.info(f"Parsed end_datetime: {end_datetime}, isoformat: {end_datetime.isoformat()}")
-                # Format with explicit 'Z' to match API requirements
-                date_filter = f'createTime > "{start_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")}" AND createTime < "{end_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")}"'
+                logger.debug(f"Parsed end_datetime: {end_datetime}, isoformat: {end_datetime.isoformat()}")
+                
+                # Use the same format as the createTime in messages to ensure compatibility
+                # Ensure the format has 6 decimal places for microseconds and 'Z' suffix
+                start_time_str = start_datetime.strftime("%Y-%m-%dT%H:%M:%S.%f").rstrip('0').rstrip('.') + 'Z'
+                end_time_str = end_datetime.strftime("%Y-%m-%dT%H:%M:%S.%f").rstrip('0').rstrip('.') + 'Z'
+                
+                # Use double quotes for the API filter
+                date_filter = f'createTime > "{start_time_str}" AND createTime < "{end_time_str}"'
+                logger.debug(f"Using formatted time strings: start={start_time_str}, end={end_time_str}")
             else:
                 # Just one day if only start_date provided
                 next_day = start_datetime + datetime.timedelta(days=1)
-                logger.info(f"Calculated next_day: {next_day}, isoformat: {next_day.isoformat()}")
-                # Format with explicit 'Z' to match API requirements
-                date_filter = f'createTime > "{start_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")}" AND createTime < "{next_day.strftime("%Y-%m-%dT%H:%M:%SZ")}"'
+                logger.debug(f"Calculated next_day: {next_day}, isoformat: {next_day.isoformat()}")
+                
+                # Use the same format as the createTime in messages to ensure compatibility
+                # Ensure the format has 6 decimal places for microseconds and 'Z' suffix
+                start_time_str = start_datetime.strftime("%Y-%m-%dT%H:%M:%S.%f").rstrip('0').rstrip('.') + 'Z'
+                next_day_str = next_day.strftime("%Y-%m-%dT%H:%M:%S.%f").rstrip('0').rstrip('.') + 'Z'
+                
+                # Use double quotes for the API filter
+                date_filter = f'createTime > "{start_time_str}" AND createTime < "{next_day_str}"'
+                logger.debug(f"Using formatted time strings: start={start_time_str}, next_day={next_day_str}")
             
             logger.info(f"Date filter created: {date_filter}")
         except ValueError as e:
@@ -141,8 +156,9 @@ async def advanced_search_messages(
     # Combine with any existing filter
     combined_filter = date_filter
     if filter_str:
+        filter_str = filter_str.strip()  # Remove any extra spaces from the user filter
         if combined_filter:
-            combined_filter = f"{combined_filter} AND {filter_str}"
+            combined_filter = f"({combined_filter}) AND ({filter_str})"  # Use parentheses for clarity and precedence
         else:
             combined_filter = filter_str
             

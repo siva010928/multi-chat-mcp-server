@@ -2,7 +2,7 @@
 Datetime utilities for Google Chat API.
 """
 import datetime
-from typing import Optional
+from typing import Optional, Union
 
 
 def rfc3339_format(dt: datetime.datetime) -> str:
@@ -34,12 +34,12 @@ def rfc3339_format(dt: datetime.datetime) -> str:
         return dt.isoformat()
 
 
-def parse_date(date_str: str, default_time: str = "start") -> datetime.datetime:
+def parse_date(date_input: Union[str, datetime.datetime], default_time: str = "start") -> datetime.datetime:
     """
-    Parse a YYYY-MM-DD string to a timezone-aware UTC datetime.
+    Parse a date input to a timezone-aware UTC datetime.
     
     Args:
-        date_str: Date string in YYYY-MM-DD format
+        date_input: Either a string in YYYY-MM-DD format or a datetime object
         default_time: Either 'start' for beginning of day or 'end' for end of day
         
     Returns:
@@ -48,28 +48,36 @@ def parse_date(date_str: str, default_time: str = "start") -> datetime.datetime:
     Raises:
         ValueError: If date string is not in YYYY-MM-DD format
     """
-    try:
-        dt = datetime.datetime.strptime(date_str, "%Y-%m-%d")
+    # If already a datetime object, just use it
+    if isinstance(date_input, datetime.datetime):
+        dt = date_input
+    else:
+        try:
+            dt = datetime.datetime.strptime(date_input, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError(f"Date '{date_input}' must be in YYYY-MM-DD format")
+    
+    # Add time component based on default_time
+    if default_time == "start":
+        dt = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif default_time == "end":
+        dt = dt.replace(hour=23, minute=59, second=59, microsecond=999999)
         
-        # Add time component based on default_time
-        if default_time == "start":
-            dt = dt.replace(hour=0, minute=0, second=0, microsecond=0)
-        elif default_time == "end":
-            dt = dt.replace(hour=23, minute=59, second=59, microsecond=999999)
-            
-        # Always add UTC timezone info
-        return dt.replace(tzinfo=datetime.timezone.utc)
-    except ValueError:
-        raise ValueError(f"Date '{date_str}' must be in YYYY-MM-DD format")
+    # Always add UTC timezone info
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=datetime.timezone.utc)
+        
+    return dt
 
 
-def create_date_filter(start_date: Optional[str], end_date: Optional[str] = None) -> Optional[str]:
+def create_date_filter(start_date: Union[str, datetime.datetime, None], 
+                      end_date: Union[str, datetime.datetime, None] = None) -> Optional[str]:
     """
     Create an API filter string for date ranges that works with Google Chat API.
     
     Args:
-        start_date: Start date in YYYY-MM-DD format
-        end_date: Optional end date in YYYY-MM-DD format
+        start_date: Start date (YYYY-MM-DD string or datetime object)
+        end_date: Optional end date (YYYY-MM-DD string or datetime object)
         
     Returns:
         Filter string suitable for the Google Chat API
@@ -86,7 +94,7 @@ def create_date_filter(start_date: Optional[str], end_date: Optional[str] = None
     
     if end_date:
         # Parse end date (end of day)
-        end_dt = parse_date(end_date, "end")
+        end_dt = parse_date(end_date, "end") 
         end_formatted = rfc3339_format(end_dt)
         
         # Create filter with both start and end dates

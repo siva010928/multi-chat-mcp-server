@@ -6,6 +6,7 @@ from googleapiclient.discovery import build
 from src.google_chat.auth import get_credentials, get_current_user_info
 from src.google_chat.messages import list_space_messages
 from src.google_chat.spaces import list_chat_spaces
+from src.google_chat.utils import rfc3339_format
 
 
 async def get_my_mentions(days: int = 7, space_id: Optional[str] = None, include_sender_info: bool = True,
@@ -49,7 +50,9 @@ async def get_my_mentions(days: int = 7, space_id: Optional[str] = None, include
         # Calculate date range (now - days)
         end_date = datetime.datetime.now(datetime.timezone.utc)
         start_date = end_date - datetime.timedelta(days=days)
-        date_filter = f"createTime > \"{start_date.isoformat()}\""
+        # Format date using proper RFC3339 format
+        start_date_str = rfc3339_format(start_date)
+        date_filter = f'createTime > "{start_date_str}"'
 
         # If space_id is provided, we can use pagination and just get messages from one space
         if space_id:

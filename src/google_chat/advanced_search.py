@@ -8,6 +8,7 @@ import traceback
 from typing import Optional
 
 from src.google_chat.messages import exact_search_messages, list_chat_spaces, list_space_messages
+from src.google_chat.utils import create_date_filter, rfc3339_format, parse_date
 from src.search_manager import SearchManager
 
 # Set up logging
@@ -113,20 +114,12 @@ async def advanced_search_messages(
     date_filter = None
     if start_date:
         try:
-            start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d').replace(
-                hour=0, minute=0, second=0, microsecond=0
-            )
+            logger.info(f"Creating date filter from start_date={start_date}, end_date={end_date}")
             
-            if end_date:
-                end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d').replace(
-                    hour=23, minute=59, second=59, microsecond=999999
-                )
-                date_filter = f"createTime > \"{start_datetime.isoformat()}\" AND createTime < \"{end_datetime.isoformat()}\""
-            else:
-                # Just one day if only start_date provided
-                next_day = start_datetime + datetime.timedelta(days=1)
-                date_filter = f"createTime > \"{start_datetime.isoformat()}\" AND createTime < \"{next_day.isoformat()}\""
+            # Use the utility function to create a properly formatted date filter
+            date_filter = create_date_filter(start_date, end_date)
             
+            # Log the created filter for debugging
             logger.info(f"Date filter created: {date_filter}")
         except ValueError as e:
             logger.error(f"Invalid date format: start={start_date}, end={end_date}. Error: {str(e)}")
@@ -135,8 +128,9 @@ async def advanced_search_messages(
     # Combine with any existing filter
     combined_filter = date_filter
     if filter_str:
+        filter_str = filter_str.strip()  # Remove any extra spaces from the user filter
         if combined_filter:
-            combined_filter = f"{combined_filter} AND {filter_str}"
+            combined_filter = f"({combined_filter}) AND ({filter_str})"  # Use parentheses for clarity and precedence
         else:
             combined_filter = filter_str
             
@@ -155,6 +149,15 @@ async def advanced_search_messages(
                 filter_str=combined_filter
             )
             logger.info(f"API search completed, found {len(api_result.get('messages', []))} messages")
+            
+            # For debugging: log timestamp details of any found messages
+            found_messages = api_result.get('messages', [])
+            for i, msg in enumerate(found_messages[:3]):  # Log details of first few messages
+                create_time = msg.get('createTime', 'unknown')
+                logger.info(f"Found message {i+1} createTime: {create_time}")
+                if start_date and end_date:
+                    logger.info(f"Message {i+1} should be within date filter: {date_filter}")
+            
             return api_result
         except Exception as e:
             logger.error(f"API search failed: {str(e)}")
@@ -200,6 +203,18 @@ async def advanced_search_messages(
             
             # Log the first few messages to help with debugging
             if messages and len(messages) > 0:
+                logger.info(f"First message createTime: {messages[0].get('createTime', 'unknown')}")
+                
+                # If we have date filtering, check if the messages are actually within range
+                if date_filter and messages:
+                    try:
+                        # Get a sample message timestamp
+                        sample_time = messages[0].get('createTime', '')
+                        logger.info(f"Sample message time: {sample_time}")
+                        logger.info(f"Date filter being applied: {date_filter}")
+                    except Exception as e:
+                        logger.error(f"Error checking message timestamps: {str(e)}")
+                
                 for i, msg in enumerate(messages[:2]):
                     text = msg.get('text', '')[:100]
                     logger.debug(f"Sample message {i+1}: {text}...")

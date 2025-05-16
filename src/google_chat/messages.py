@@ -1,9 +1,16 @@
 from typing import List, Dict, Optional
+import logging
+import datetime
 
 from googleapiclient.discovery import build
 
 from src.google_chat.auth import get_credentials, get_user_info_by_id
 from src.google_chat.spaces import list_chat_spaces
+from src.google_chat.utils import create_date_filter
+
+
+# Set up logging
+logger = logging.getLogger("messages")
 
 
 async def list_space_messages(space_name: str,
@@ -47,12 +54,18 @@ async def list_space_messages(space_name: str,
 
         # If filter not provided but start_date is, construct a filter string
         if not filter_str and start_date:
-            if end_date:
-                # Format for date range query
-                filter_str = f'createTime > "{start_date}T00:00:00Z" AND createTime < "{end_date}T23:59:59Z"'
-            else:
-                # For single day query, set range from start of day to end of day
-                filter_str = f'createTime > "{start_date}T00:00:00Z" AND createTime < "{start_date}T23:59:59Z"'
+            logger.info(f"Creating date filter from start_date={start_date}, end_date={end_date}")
+            
+            try:
+                # Use the utility function to create a properly formatted filter string
+                date_filter = create_date_filter(start_date, end_date)
+                
+                if date_filter:
+                    filter_str = date_filter
+                    logger.info(f"Date filter created: {filter_str}")
+            except ValueError as e:
+                logger.error(f"Invalid date format: {str(e)}")
+                raise ValueError(f"Invalid date format: {str(e)}")
 
         # Prepare request parameters
         request_params = {
@@ -62,6 +75,7 @@ async def list_space_messages(space_name: str,
 
         # Add optional parameters if provided
         if filter_str:
+            logger.info(f"Using filter string in API request: {filter_str}")
             request_params['filter'] = filter_str
         if page_token:
             request_params['pageToken'] = page_token
@@ -76,6 +90,8 @@ async def list_space_messages(space_name: str,
         # Extract messages and next page token
         messages = response.get('messages', [])
         next_page_token = response.get('nextPageToken')
+        
+        logger.info(f"Retrieved {len(messages)} messages from space {space_name}")
 
         # Add sender information if requested
         if include_sender_info:

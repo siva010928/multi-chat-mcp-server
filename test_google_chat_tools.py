@@ -13,6 +13,7 @@ from pprint import pprint
 import traceback
 
 from src.google_chat.advanced_search import advanced_search_messages
+from src.google_chat.summary import get_my_mentions, summarize_conversation
 
 # Add the project root to the path so we can import the src modules
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))

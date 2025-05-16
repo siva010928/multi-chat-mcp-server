@@ -1,13 +1,14 @@
 """
 Advanced Search Integration - Connect SearchManager with Google Chat API
 """
-import asyncio
 import datetime
 import logging
 import re
 import traceback
-from typing import List, Dict, Optional, Any, Tuple
-from search_manager import SearchManager
+from typing import Optional
+
+from src.google_chat.messages import exact_search_messages, list_chat_spaces, list_space_messages
+from src.search_manager import SearchManager
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -16,13 +17,13 @@ logger = logging.getLogger("search_integration")
 async def advanced_search_messages(
     query: str, 
     search_mode: str = None,  # Changed from "semantic" to None to use config default
-    spaces: List[str] = None,
+    spaces: list[str] = None,
     max_results: int = 50,
     include_sender_info: bool = False,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     filter_str: Optional[str] = None,
-) -> Dict:
+) -> dict:
     """
     Perform advanced search on Google Chat messages using configurable search modes.
     
@@ -62,8 +63,8 @@ async def advanced_search_messages(
         filter_str: Optional additional filter string for the API
         
     Returns:
-        Dictionary with search results:
-        - messages: List of message objects matching the search query
+        dictionary with search results:
+        - messages: list of message objects matching the search query
         - nextPageToken: Token for retrieving the next page of results (if applicable)
     
     Raises:
@@ -92,9 +93,7 @@ async def advanced_search_messages(
             spaces=["spaces/AAQAXL5fJxI"]
         )
     """
-    from google_chat import search_messages as api_search_messages
-    from google_chat import list_space_messages
-    
+
     logger.info(f"Advanced search started: query='{query}', mode={search_mode}, spaces={spaces}")
     
     # Initialize the search manager
@@ -148,7 +147,7 @@ async def advanced_search_messages(
         # Use the API's built-in search which does basic substring matching
         logger.info("Using API's built-in search (exact mode)")
         try:
-            api_result = await api_search_messages(
+            api_result = await exact_search_messages(
                 query=query,
                 spaces=spaces,
                 max_results=max_results,
@@ -171,7 +170,6 @@ async def advanced_search_messages(
     if not spaces_to_search:
         try:
             logger.info("No spaces specified, getting all available spaces")
-            from google_chat import list_chat_spaces
             spaces_response = await list_chat_spaces()
             spaces_to_search = [space.get("name") for space in spaces_response if space.get("name")]
             logger.info(f"Found {len(spaces_to_search)} spaces to search")
@@ -298,8 +296,9 @@ async def advanced_search_messages(
 
 # Example usage:
 # results = await advanced_search_messages(
-#     "important meeting notes", 
+#     "important meeting notes",
 #     search_mode="hybrid",
-#     start_date="2023-01-01", 
+#     start_date="2023-01-01",
 #     end_date="2023-12-31"
-# ) 
+# )
+# print(results)

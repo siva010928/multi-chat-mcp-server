@@ -1,12 +1,15 @@
 """
 Search Manager - Centralized system for advanced message searching
 """
-import os
-import yaml
-import re
 import logging
-from typing import List, Dict, Any, Optional, Tuple
+import os
+import re
 from collections import defaultdict
+from typing import Optional
+
+import yaml
+
+from src.google_chat.constants import SEARCH_CONFIG_YAML_PATH
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -24,7 +27,7 @@ except ImportError:
 class SearchManager:
     """Manages search operations across different search modes based on configuration."""
     
-    def __init__(self, config_path: str = "search_config.yaml"):
+    def __init__(self, config_path: str = ("%s" % SEARCH_CONFIG_YAML_PATH)):
         """Initialize the search manager with the provided configuration file."""
         logger.info(f"Initializing SearchManager with config: {config_path}")
         self.config = self._load_config(config_path)
@@ -38,7 +41,7 @@ class SearchManager:
         logger.info(f"Setting up semantic provider with model: {model_name}")
         self.semantic_provider = SemanticSearchProvider(model_name, cache_size)
     
-    def _load_config(self, config_path: str) -> Dict:
+    def _load_config(self, config_path: str) -> dict:
         """Load search configuration from a YAML file."""
         if not os.path.exists(config_path):
             logger.error(f"Search configuration file not found: {config_path}")
@@ -62,18 +65,18 @@ class SearchManager:
         logger.info(f"Using default search mode: {default}")
         return default
         
-    def search(self, query: str, messages: List[Dict], mode: Optional[str] = None) -> List[Tuple[float, Dict]]:
+    def search(self, query: str, messages: list[dict], mode: Optional[str] = None) -> list[tuple[float, dict]]:
         """
         Search messages using the specified mode.
         
         Args:
             query: The search query
-            messages: List of message objects to search through
+            messages: list of message objects to search through
             mode: Search mode (exact, regex, semantic, hybrid)
                   If None, uses the default mode from config
                   
         Returns:
-            List of tuples (score, message) sorted by relevance score (descending)
+            list of tuples (score, message) sorted by relevance score (descending)
         """
         logger.info(f"Starting search with query: '{query}', mode: {mode or 'default'}, message count: {len(messages)}")
         
@@ -96,7 +99,7 @@ class SearchManager:
             logger.error(f"Unknown search mode: {mode}")
             raise ValueError(f"Unknown search mode: {mode}")
             
-    def _exact_search(self, query: str, messages: List[Dict]) -> List[Tuple[float, Dict]]:
+    def _exact_search(self, query: str, messages: list[dict]) -> list[tuple[float, dict]]:
         """Perform exact (case-insensitive substring) matching."""
         results = []
         query_lower = query.lower()
@@ -115,7 +118,7 @@ class SearchManager:
         results.sort(reverse=True)
         return results
         
-    def _regex_search(self, query: str, messages: List[Dict]) -> List[Tuple[float, Dict]]:
+    def _regex_search(self, query: str, messages: list[dict]) -> list[tuple[float, dict]]:
         """Perform regular expression matching."""
         results = []
         weight = self.search_modes.get("regex", {}).get("weight", 1.0)
@@ -157,7 +160,7 @@ class SearchManager:
         results.sort(reverse=True)
         return results
         
-    def _semantic_search(self, query: str, messages: List[Dict]) -> List[Tuple[float, Dict]]:
+    def _semantic_search(self, query: str, messages: list[dict]) -> list[tuple[float, dict]]:
         """Perform semantic (meaning-based) matching."""
         results = []
         semantic_config = self.search_modes.get("semantic", {}).get("options", {})
@@ -202,7 +205,7 @@ class SearchManager:
         results.sort(reverse=True)
         return results
     
-    def _hybrid_search(self, query: str, messages: List[Dict]) -> List[Tuple[float, Dict]]:
+    def _hybrid_search(self, query: str, messages: list[dict]) -> list[tuple[float, dict]]:
         """Combine results from multiple search methods."""
         # Get weights for each mode
         hybrid_weights = self.config.get('search', {}).get('hybrid_weights', {})

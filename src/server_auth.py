@@ -1,21 +1,15 @@
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import JSONResponse, RedirectResponse
-import uvicorn
-import signal
 import asyncio
+import signal
 from pathlib import Path
 from typing import Optional, Dict
-from datetime import datetime
+
+import uvicorn
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import JSONResponse, RedirectResponse
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-from google_chat import (
-    get_credentials,
-    save_credentials,
-    refresh_token,
-    SCOPES,
-    DEFAULT_CALLBACK_URL,
-    token_info
-)
+from src.google_chat.auth import get_credentials, token_info, save_credentials, refresh_token
+from src.google_chat.constants import DEFAULT_CALLBACK_URL, SCOPES
 
 # Store OAuth flow state
 oauth_flows: Dict[str, InstalledAppFlow] = {}

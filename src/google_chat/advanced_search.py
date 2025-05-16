@@ -8,6 +8,7 @@ import traceback
 from typing import Optional
 
 from src.google_chat.messages import exact_search_messages, list_chat_spaces, list_space_messages
+from src.google_chat.utils import create_date_filter, rfc3339_format, parse_date
 from src.search_manager import SearchManager
 
 # Set up logging
@@ -114,40 +115,11 @@ async def advanced_search_messages(
     if start_date:
         try:
             logger.info(f"Creating date filter from start_date={start_date}, end_date={end_date}")
-            start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d').replace(
-                hour=0, minute=0, second=0, microsecond=0, tzinfo=datetime.timezone.utc
-            )
-            logger.info(f"Parsed start_datetime: {start_datetime}, isoformat: {start_datetime.isoformat()}")
             
-            # Note the message createTime format: "2025-05-13T16:58:05.935391Z"
-            if end_date:
-                end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d').replace(
-                    hour=23, minute=59, second=59, microsecond=999999, tzinfo=datetime.timezone.utc
-                )
-                logger.debug(f"Parsed end_datetime: {end_datetime}, isoformat: {end_datetime.isoformat()}")
-                
-                # Use the same format as the createTime in messages to ensure compatibility
-                # Ensure the format has 6 decimal places for microseconds and 'Z' suffix
-                start_time_str = start_datetime.strftime("%Y-%m-%dT%H:%M:%S.%f").rstrip('0').rstrip('.') + 'Z'
-                end_time_str = end_datetime.strftime("%Y-%m-%dT%H:%M:%S.%f").rstrip('0').rstrip('.') + 'Z'
-                
-                # Use double quotes for the API filter
-                date_filter = f'createTime > "{start_time_str}" AND createTime < "{end_time_str}"'
-                logger.debug(f"Using formatted time strings: start={start_time_str}, end={end_time_str}")
-            else:
-                # Just one day if only start_date provided
-                next_day = start_datetime + datetime.timedelta(days=1)
-                logger.debug(f"Calculated next_day: {next_day}, isoformat: {next_day.isoformat()}")
-                
-                # Use the same format as the createTime in messages to ensure compatibility
-                # Ensure the format has 6 decimal places for microseconds and 'Z' suffix
-                start_time_str = start_datetime.strftime("%Y-%m-%dT%H:%M:%S.%f").rstrip('0').rstrip('.') + 'Z'
-                next_day_str = next_day.strftime("%Y-%m-%dT%H:%M:%S.%f").rstrip('0').rstrip('.') + 'Z'
-                
-                # Use double quotes for the API filter
-                date_filter = f'createTime > "{start_time_str}" AND createTime < "{next_day_str}"'
-                logger.debug(f"Using formatted time strings: start={start_time_str}, next_day={next_day_str}")
+            # Use the utility function to create a properly formatted date filter
+            date_filter = create_date_filter(start_date, end_date)
             
+            # Log the created filter for debugging
             logger.info(f"Date filter created: {date_filter}")
         except ValueError as e:
             logger.error(f"Invalid date format: start={start_date}, end={end_date}. Error: {str(e)}")
@@ -177,6 +149,15 @@ async def advanced_search_messages(
                 filter_str=combined_filter
             )
             logger.info(f"API search completed, found {len(api_result.get('messages', []))} messages")
+            
+            # For debugging: log timestamp details of any found messages
+            found_messages = api_result.get('messages', [])
+            for i, msg in enumerate(found_messages[:3]):  # Log details of first few messages
+                create_time = msg.get('createTime', 'unknown')
+                logger.info(f"Found message {i+1} createTime: {create_time}")
+                if start_date and end_date:
+                    logger.info(f"Message {i+1} should be within date filter: {date_filter}")
+            
             return api_result
         except Exception as e:
             logger.error(f"API search failed: {str(e)}")
@@ -222,6 +203,18 @@ async def advanced_search_messages(
             
             # Log the first few messages to help with debugging
             if messages and len(messages) > 0:
+                logger.info(f"First message createTime: {messages[0].get('createTime', 'unknown')}")
+                
+                # If we have date filtering, check if the messages are actually within range
+                if date_filter and messages:
+                    try:
+                        # Get a sample message timestamp
+                        sample_time = messages[0].get('createTime', '')
+                        logger.info(f"Sample message time: {sample_time}")
+                        logger.info(f"Date filter being applied: {date_filter}")
+                    except Exception as e:
+                        logger.error(f"Error checking message timestamps: {str(e)}")
+                
                 for i, msg in enumerate(messages[:2]):
                     text = msg.get('text', '')[:100]
                     logger.debug(f"Sample message {i+1}: {text}...")

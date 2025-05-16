@@ -26,6 +26,7 @@ This project provides a server implementation for the Model Control Protocol (MC
 - **Google Cloud Platform Project**: You must be able to create and configure a project in Google Cloud Console.
 - **OAuth 2.0 Understanding**: Basic familiarity with OAuth authentication flows is helpful.
 - **Python 3.9+**: The server requires Python 3.9 or newer.
+- **UV Package Manager**: This project uses UV for dependency management.
 
 ### 1. Installation
 
@@ -36,16 +37,34 @@ git clone https://github.com/twlabs/AIFSD-google-chat-mcp.git
 cd AIFSD-google-chat-mcp
 ```
 
-2. Create a virtual environment (optional but recommended):
+2. Install UV if you don't have it already:
+
+```bash
+# Install UV using pip
+pip install uv
+
+# Or on macOS using Homebrew
+brew install uv
+```
+
+3. Create a virtual environment and install requirements using UV (recommended):
+
+```bash
+# Create virtual environment and install requirements in one step
+uv venv .venv
+
+# Activate the environment
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install requirements
+uv pip install -r requirements.txt
+```
+
+4. Alternatively, you can use traditional pip:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
-
-3. Install requirements:
-
-```bash
 pip install -r requirements.txt
 ```
 
@@ -95,17 +114,23 @@ Add the Google Chat MCP server to your MCP client's configuration. For Cursor, e
     "command": "uv",
     "args": [
       "--directory",
-      "/path/to/AIFSD-google-chat-mcp",
+      "/path/to/google-chat-mcp-server",
       "run",
-      "server.py",
+      "-m",
+      "src.server",
       "--token-path",
-      "/path/to/AIFSD-google-chat-mcp/token.json"
+      "/path/to/google-chat-mcp-server/token.json"
     ]
   }
 }
 ```
 
-Replace `/path/to/AIFSD-google-chat-mcp` with the actual path to your cloned repository.
+Replace `/path/to/google-chat-mcp-server` with the actual path to your repository.
+
+**Important File Locations:**
+- `credentials.json`: Must be placed in the root directory of the project
+- `token.json`: Generated in the root directory after authentication, can be configured with `--token-path`
+- `search_config.yaml`: Located in the root directory, configures search behavior
 
 > **Note**: After completing this setup, you can close this project. The MCP client (e.g., Cursor) will automatically start and manage the server process when you use Google Chat MCP tools in your AI assistant. You don't need to manually start the server each time - the AI tool's MCP client will handle starting and stopping the server as needed. Once you've authenticated and configured everything, you can move on to other projects while still having access to all the Google Chat MCP functionality.
 
@@ -115,11 +140,11 @@ The following tools are available to interact with Google Chat:
 
 
 ### Chat Space Management
-- **`mcp_google_chat_get_chat_spaces`** - List all Google Chat spaces you have access to
+- **`mcp_google_chat_get_chat_spaces_tool`** - List all Google Chat spaces you have access to
   - Parameters: none
   - Returns: Array of space objects with details like name, type, display name
 
-- **`mcp_google_chat_get_space_messages`** - List messages from a specific space with date filtering
+- **`mcp_google_chat_get_space_messages_tool`** - List messages from a specific space with date filtering
   - Parameters: 
     - `space_name` (string, required): Space identifier (e.g., "spaces/AAQAtjsc9v4")
     - `start_date` (string, required): Date in YYYY-MM-DD format
@@ -129,82 +154,85 @@ The following tools are available to interact with Google Chat:
     - `page_token` (string, optional): Token for retrieving the next page of results
     - `filter_str` (string, optional): Custom filter string in Google Chat API format
     - `order_by` (string, optional): Ordering format like "createTime DESC"
+    - `show_deleted` (boolean, optional): Whether to include deleted messages
   - Returns: Dictionary containing an array of message objects and a nextPageToken for pagination
 
 ### Messaging
-- **`mcp_google_chat_send_message`** - Send a text message to a Google Chat space
+- **`mcp_google_chat_send_message_tool`** - Send a text message to a Google Chat space
   - Parameters: 
     - `space_name` (string, required): Space identifier
     - `text` (string, required): Message content
   - Returns: Created message object
 
-- **`mcp_google_chat_reply_to_message_thread`** - Reply to an existing thread in a space
+- **`mcp_google_chat_reply_to_message_thread_tool`** - Reply to an existing thread in a space
   - Parameters:
     - `space_name` (string, required): Space identifier
     - `thread_key` (string, required): Thread identifier
     - `text` (string, required): Reply content
   - Returns: Created message object
 
-- **`mcp_google_chat_update_chat_message`** - Update an existing message
+- **`mcp_google_chat_update_chat_message_tool`** - Update an existing message
   - Parameters:
     - `message_name` (string, required): Full resource name of message
     - `new_text` (string, required): Updated text content
   - Returns: Updated message object
 
-- **`mcp_google_chat_delete_chat_message`** - Delete a message
+- **`mcp_google_chat_delete_chat_message_tool`** - Delete a message
   - Parameters:
     - `message_name` (string, required): Full resource name of message
   - Returns: Empty response on success
 
 ### Message Interactions
-- **`mcp_google_chat_add_emoji_reaction`** - Add an emoji reaction to a message
+- **`mcp_google_chat_add_emoji_reaction_tool`** - Add an emoji reaction to a message
   - Parameters:
     - `message_name` (string, required): Message identifier
     - `emoji` (string, required): Unicode emoji character
   - Returns: Created reaction object
 
-- **`mcp_google_chat_get_chat_message`** - Get details about a specific message
+- **`mcp_google_chat_get_chat_message_tool`** - Get details about a specific message
   - Parameters:
     - `message_name` (string, required): Message identifier
+    - `include_sender_info` (boolean, optional): Whether to include detailed sender information
   - Returns: Full message object
 
 ### Search & Filtering
-- **`mcp_google_chat_search_messages`** - Search for messages across spaces
+- **`mcp_google_chat_search_messages_tool`** - Search for messages across spaces
   - Parameters:
     - `query` (string, required): Search text
+    - `search_mode` (string, optional): Search strategy to use ("regex", "semantic", "exact", or "hybrid")
     - `spaces` (array of strings, optional): List of spaces to search in
     - `max_results` (integer, optional): Maximum number of results (default: 50)
     - `include_sender_info` (boolean, optional): Whether to include detailed sender information
-    - `page_token` (string, optional): Token for retrieving the next page of results
+    - `start_date` (string, optional): Start date in YYYY-MM-DD format
+    - `end_date` (string, optional): End date in YYYY-MM-DD format
     - `filter_str` (string, optional): Custom filter string in Google Chat API format
-    - `order_by` (string, optional): Ordering format like "createTime DESC"
   - Returns: Dictionary with matching message objects and nextPageToken for pagination
 
-- **`mcp_google_chat_get_my_mentions`** - Find messages that mention you
+- **`mcp_google_chat_get_my_mentions_tool`** - Find messages that mention you
   - Parameters:
     - `days` (integer, optional): Number of days to look back (default: 7)
     - `space_id` (string, optional): Limit search to a specific space
-    - `include_sender_info` (boolean, optional): Whether to include detailed sender information
+    - `include_sender_info` (boolean, optional): Whether to include detailed sender information (default: True)
     - `page_size` (integer, optional): Maximum number of messages to return (default: 50)
     - `page_token` (string, optional): Token for retrieving the next page of results
   - Returns: Dictionary with messages mentioning you and nextPageToken for pagination
 
 ### User Information
-- **`mcp_google_chat_get_my_user_info`** - Get your Google Chat user details
+- **`mcp_google_chat_get_my_user_info_tool`** - Get your Google Chat user details
   - Parameters: none
   - Returns: User object with details like email, display name
 
-- **`mcp_google_chat_get_user_info_by_id`** - Get information about a specific user by their ID
+- **`mcp_google_chat_get_user_info_by_id_tool`** - Get information about a specific user by their ID
   - Parameters:
     - `user_id` (string, required): The ID of the user to get information for
   - Returns: User object with details like email, display name, profile photo
 
-- **`mcp_google_chat_get_message_with_sender_info`** - Get a message with enhanced sender details
+- **`mcp_google_chat_get_message_with_sender_info_tool`** - Get a message with enhanced sender details
   - Parameters:
     - `message_name` (string, required): Full resource name of message
   - Returns: Full message object with additional sender_info field containing detailed user profile
 
-- **`mcp_google_chat_list_messages_with_sender_info`** - List messages with enhanced sender information
+- **`mcp_google_chat_list_messages_with_sender_info_tool`** - List messages with enhanced sender information
   - Parameters:
     - `space_name` (string, required): Space identifier
     - `start_date` (string, optional): Date in YYYY-MM-DD format
@@ -214,7 +242,7 @@ The following tools are available to interact with Google Chat:
   - Returns: Dictionary with messages array and nextPageToken for pagination, with sender_info included
 
 ### Space Management
-- **`mcp_google_chat_manage_space_members`** - Add or remove members from a space
+- **`mcp_google_chat_manage_space_members_tool`** - Add or remove members from a space
   - Parameters:
     - `space_name` (string, required): Space identifier
     - `operation` (string, required): Either "add" or "remove"
@@ -222,21 +250,34 @@ The following tools are available to interact with Google Chat:
   - Returns: Response with operation results
 
 ### File Handling
-- **`mcp_google_chat_send_file_message`** - Send a message with file contents
+- **`mcp_google_chat_send_file_message_tool`** - Send a message with file contents
   - Parameters:
     - `space_name` (string, required): Space identifier
     - `file_path` (string, required): Path to the file
     - `message_text` (string, optional): Accompanying message
   - Returns: Created message object
 
+- **`mcp_google_chat_send_file_content_tool`** - Send file content as a message (workaround for attachments)
+  - Parameters:
+    - `space_name` (string, required): Space identifier
+    - `file_path` (string, optional): Path to the file to send
+  - Returns: Created message object
+
+- **`mcp_google_chat_upload_attachment_tool`** - Upload a file attachment to a Google Chat space
+  - Parameters:
+    - `space_name` (string, required): Space identifier
+    - `file_path` (string, required): Path to the file to upload
+    - `message_text` (string, optional): Text message to accompany the attachment
+  - Returns: The created message object with the attachment
+
 ### Batch Operations
-- **`mcp_google_chat_batch_send_messages`** - Send multiple messages in one operation
+- **`mcp_google_chat_batch_send_messages_tool`** - Send multiple messages in one operation
   - Parameters:
     - `messages` (array of objects, required): List of message objects to send
   - Returns: Results for each message
 
 ### Conversation Analysis
-- **`mcp_google_chat_get_conversation_participants`** - Get information about conversation participants
+- **`mcp_google_chat_get_conversation_participants_tool`** - Get information about conversation participants
   - Parameters:
     - `space_name` (string, required): Space identifier
     - `start_date` (string, optional): Date in YYYY-MM-DD format
@@ -244,7 +285,7 @@ The following tools are available to interact with Google Chat:
     - `max_messages` (integer, optional): Maximum number of messages to analyze (default: 100)
   - Returns: Array of participant information objects
 
-- **`mcp_google_chat_summarize_conversation`** - Generate a summary of a conversation
+- **`mcp_google_chat_summarize_conversation_tool`** - Generate a summary of a conversation
   - Parameters:
     - `space_name` (string, required): Space identifier
     - `message_limit` (integer, optional): Maximum messages to include (default: 10)
@@ -253,6 +294,123 @@ The following tools are available to interact with Google Chat:
     - `page_token` (string, optional): Token for retrieving the next page of results
     - `filter_str` (string, optional): Custom filter string in Google Chat API format
   - Returns: Dictionary with space details, participant list, and recent messages
+
+## Configuration Customization
+
+### Constants Configuration
+
+You can customize various aspects of the Google Chat MCP server by modifying constants in `src/google_chat/constants.py`:
+
+- `DEFAULT_TOKEN_PATH`: Path where the OAuth token is stored
+- `CREDENTIALS_FILE`: Path to the OAuth credentials file
+- `SCOPES`: OAuth scopes required for the application
+- `DEFAULT_CALLBACK_URL`: Callback URL for the OAuth flow
+- `SEARCH_CONFIG_YAML_PATH`: Path to the search configuration file
+
+### Search Configuration
+
+The `search_config.yaml` file in the root directory controls how the search functionality works:
+
+```yaml
+search_modes:
+  - name: "regex"  # Default search mode
+    enabled: true
+    description: "Regular expression pattern matching - case insensitive by default."
+    weight: 1.2
+    options:
+      ignore_case: true
+      dot_all: false
+      unicode: true
+      max_pattern_length: 1000
+    
+  - name: "exact"
+    enabled: true
+    description: "Basic case-insensitive substring matching - fastest but least flexible."
+    weight: 1.0
+    
+  - name: "semantic"
+    enabled: true
+    description: "Meaning-based semantic search - best for concept searching."
+    weight: 1.5
+    options:
+      model: "all-MiniLM-L6-v2"
+      cache_embeddings: true
+      cache_max_size: 10000
+      similarity_threshold: 0.2
+      similarity_metric: "cosine"
+
+search:
+  default_mode: "regex"  # The search mode to use by default
+  max_results_per_space: 50
+  combine_results_strategy: "weighted_score"
+```
+
+You can modify this file to:
+- Change the default search mode (regex, semantic, exact, hybrid)
+- Adjust weights for different search modes
+- Configure semantic search parameters like model and threshold
+- Set maximum results returned per search
+
+The LLM will use the default search mode unless explicitly specifying a different mode in the `search_mode` parameter.
+
+### Agent Rules for Tool Execution
+
+When using these tools with an AI assistant, you can define custom rules to guide how the tools are used. For example, in Cursor, you can set up specific rules for when and how the Google Chat tools should be executed:
+
+**Example Rule for Team Communication:**
+```
+If I say anything that semantically implies communicating with my team—including phrases like:
+"Update my team," "Send this to the team," "Let the team know," etc.
+
+Then interpret this as a command to send a message via the send_message tool with:
+space_name: spaces/YOUR_SPACE_ID
+text: [content from my message]
+
+For search operations, start with semantic mode, then fall back to regex if needed.
+Show me message drafts for approval when the intent or content is unclear.
+```
+
+**Comprehensive Team Communication Rule Example:**
+```
+If I say anything that even remotely, semantically or syntactically, implies communicating with my team—including, but not limited to, any of these phrases or their variants:
+
+"Catch me up with [topic/updates/etc.]" (this always triggers a search; start with semantic mode, then regex if semantic yields nothing),
+"Update my team," "Send this to the team," "Let the team know,"
+"Share with my team," "Message the team," "Convey this to them,"
+"Team should know this," "Pass this along to the team,"
+"Notify the team," "Inform them," "Tell everyone,"
+"Broadcast this," "Share this update with everyone,"
+"Remind them about [something]," "Let the group know,"
+"Team needs to hear this," "Push this to the group chat,"
+"Make sure the team is aware," "Send an alert to the team,"
+"Relay this to the team," "Tell the group," "Forward this to the team,"
+
+and any other phrasing with similar intent—you must interpret this as a command to send a message via the send_message tool in the Google Chat MCP agent.
+
+You must always use the following parameters:
+space_name: spaces/AAQAXL5fJxI
+text: [the content you construct or extract from my message]
+
+Never use any other communication channel (do not use email, Slack, SMS, etc.).
+Never switch to another Google Chat space unless I specify it explicitly by name or space ID.
+Never skip this action—ever—when a trigger phrase or its equivalent meaning is present.
+
+If you are at all unsure what to send due to missing context, unclear phrasing, or abstraction:
+1. Draft a sample message.
+2. Show it to me: "Here's what I'll send to the team. Approve?"
+3. Wait for my explicit confirmation before sending.
+
+When you are told to "catch me up with" or anything suggesting a search, always start with "semantic" mode to search for relevant messages or updates. If you do not get any results, immediately retry using "regex" mode.
+```
+
+You can customize rules like this to:
+- Specify which spaces to use by default
+- Define trigger phrases for different tools
+- Establish search preferences (e.g., try semantic first, then regex)
+- Require approval before sending messages
+- Set up conversation context handling
+
+These rules help the AI assistant choose appropriate tools and parameters automatically based on your instructions, making interactions more natural without requiring explicit tool commands.
 
 ## Authentication & Token Management
 
@@ -348,6 +506,62 @@ The following functions support pagination:
 ## Testing
 
 The repository includes a comprehensive test suite to verify functionality:
+
+### Running Tests
+
+Run the full test suite:
+
+```bash
+python test_google_chat_tools.py
+```
+
+Or use pytest with coverage:
+
+```bash
+python -m pytest
+```
+
+View the HTML coverage report in the `htmlcov` directory.
+
+### Test Features
+
+The test suite verifies all major functionalities:
+
+1. **Authentication** - Tests that OAuth credentials are valid and properly configured
+2. **Space Operations** - Lists spaces and tests space member management
+3. **Message Operations** - Tests sending, updating, replying to, and deleting messages
+4. **Search Functionality** - Tests the search capabilities including regex and semantic search
+5. **User Information** - Verifies user profile data retrieval
+6. **Advanced Features** - Tests conversation summaries and participant analysis
+
+### Testing Configuration
+
+For better test organization, create a file called `test_config.py` with your test space ID:
+
+```python
+# test_config.py
+TEST_SPACE_ID = "spaces/YOUR_TEST_SPACE_ID"
+```
+
+This file is git-ignored and allows you to run tests without hardcoding space IDs.
+
+### CI/CD Integration
+
+The repository includes CircleCI configuration for automated testing. To use it:
+
+1. Configure CircleCI with your repository
+2. Set up the following environment variables in CircleCI:
+   - `GOOGLE_CREDENTIALS` - Base64-encoded credentials.json content
+   - `GOOGLE_TOKEN` - Base64-encoded token.json content
+   - `TEST_SPACE_ID` - Your test space ID for running integration tests
+
+### Project Structure
+
+- **google_chat.py**: Core library with all API functions
+- **server.py**: MCP server and authentication web server
+- **server_auth.py**: Authentication helpers
+- **test_google_chat_tools.py**: Test suite for all functionality
+- **TOKEN_MANAGEMENT.md**: Detailed guide to token management
 
 ## Development
 

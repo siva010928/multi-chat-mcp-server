@@ -113,19 +113,25 @@ async def advanced_search_messages(
     date_filter = None
     if start_date:
         try:
+            logger.info(f"Creating date filter from start_date={start_date}, end_date={end_date}")
             start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d').replace(
-                hour=0, minute=0, second=0, microsecond=0
+                hour=0, minute=0, second=0, microsecond=0, tzinfo=datetime.timezone.utc
             )
+            logger.info(f"Parsed start_datetime: {start_datetime}, isoformat: {start_datetime.isoformat()}")
             
             if end_date:
                 end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d').replace(
-                    hour=23, minute=59, second=59, microsecond=999999
+                    hour=23, minute=59, second=59, microsecond=999999, tzinfo=datetime.timezone.utc
                 )
-                date_filter = f"createTime > \"{start_datetime.isoformat()}\" AND createTime < \"{end_datetime.isoformat()}\""
+                logger.info(f"Parsed end_datetime: {end_datetime}, isoformat: {end_datetime.isoformat()}")
+                # Format with explicit 'Z' to match API requirements
+                date_filter = f'createTime > "{start_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")}" AND createTime < "{end_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")}"'
             else:
                 # Just one day if only start_date provided
                 next_day = start_datetime + datetime.timedelta(days=1)
-                date_filter = f"createTime > \"{start_datetime.isoformat()}\" AND createTime < \"{next_day.isoformat()}\""
+                logger.info(f"Calculated next_day: {next_day}, isoformat: {next_day.isoformat()}")
+                # Format with explicit 'Z' to match API requirements
+                date_filter = f'createTime > "{start_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")}" AND createTime < "{next_day.strftime("%Y-%m-%dT%H:%M:%SZ")}"'
             
             logger.info(f"Date filter created: {date_filter}")
         except ValueError as e:

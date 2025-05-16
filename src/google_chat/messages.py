@@ -47,12 +47,18 @@ async def list_space_messages(space_name: str,
 
         # If filter not provided but start_date is, construct a filter string
         if not filter_str and start_date:
+            import logging
+            logger = logging.getLogger("messages")
+            logger.info(f"Creating date filter from start_date={start_date}, end_date={end_date}")
+            
             if end_date:
                 # Format for date range query
                 filter_str = f'createTime > "{start_date}T00:00:00Z" AND createTime < "{end_date}T23:59:59Z"'
             else:
                 # For single day query, set range from start of day to end of day
                 filter_str = f'createTime > "{start_date}T00:00:00Z" AND createTime < "{start_date}T23:59:59Z"'
+            
+            logger.info(f"Date filter created: {filter_str}")
 
         # Prepare request parameters
         request_params = {
@@ -62,6 +68,8 @@ async def list_space_messages(space_name: str,
 
         # Add optional parameters if provided
         if filter_str:
+            import logging
+            logging.getLogger("messages").info(f"Using filter string: {filter_str}")
             request_params['filter'] = filter_str
         if page_token:
             request_params['pageToken'] = page_token

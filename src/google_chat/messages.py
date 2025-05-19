@@ -6,7 +6,7 @@ from googleapiclient.discovery import build
 
 from src.google_chat.auth import get_credentials, get_user_info_by_id
 from src.google_chat.spaces import list_chat_spaces
-from src.google_chat.utils import create_date_filter
+from src.google_chat.utils import create_date_filter, parse_date, rfc3339_format
 
 
 # Set up logging
@@ -26,56 +26,47 @@ async def list_space_messages(space_name: str,
 
     Args:
         space_name: The name/identifier of the space to fetch messages from
-        start_date: Optional start date in YYYY-MM-DD format for filtering messages. 
-                   If provided without end_date, will query messages for the entire day of start_date
-        end_date: Optional end date in YYYY-MM-DD format for filtering messages.
-                 Only used if start_date is also provided
-        include_sender_info: Whether to include sender information in the returned messages (default: False)
+        start_date: Optional start date in YYYY-MM-DD format for filtering messages
+        end_date: Optional end date in YYYY-MM-DD format for filtering messages
+        include_sender_info: Whether to include detailed sender information
         page_size: Maximum number of messages to return (default: 25, max: 1000)
         page_token: Page token from a previous request for pagination
         filter_str: Optional filter string in the format specified by Google Chat API
-                   For example: "createTime > \"2023-04-21T11:30:00-04:00\""
-        order_by: How messages are ordered, format: "<field> <direction>",
-                 e.g., "createTime DESC" (default: "createTime ASC")
-        show_deleted: Whether to include deleted messages (default: False)
+        order_by: How messages are ordered, format: "<field> <direction>"
+        show_deleted: Whether to include deleted messages in the results
 
     Returns:
-        Dictionary with 'messages' list and optional 'nextPageToken'
-
-    Raises:
-        Exception: If authentication fails or API request fails
+        Dictionary containing messages and next page token
     """
     try:
+        # Get credentials
         creds = get_credentials()
-        if not creds:
-            raise Exception("No valid credentials found. Please authenticate first.")
-
         service = build('chat', 'v1', credentials=creds)
 
-        # If filter not provided but start_date is, construct a filter string
-        if not filter_str and start_date:
-            logger.info(f"Creating date filter from start_date={start_date}, end_date={end_date}")
-            
+        # Create date filter if necessary
+        if start_date:
             try:
-                # Use the utility function to create a properly formatted filter string
-                date_filter = create_date_filter(start_date, end_date)
+                # Format dates for the Google Chat API
+                from src.google_chat.utils.datetime import create_date_filter
                 
-                if date_filter:
+                date_filter = create_date_filter(start_date, end_date)
+                    
+                logger.info(f"Using date filter: {date_filter}")
+                
+                # If we already have a filter, append the date filter
+                if filter_str:
+                    filter_str = f"{filter_str} AND ({date_filter})"
+                else:
                     filter_str = date_filter
-                    logger.info(f"Date filter created: {filter_str}")
             except ValueError as e:
                 logger.error(f"Invalid date format: {str(e)}")
                 raise ValueError(f"Invalid date format: {str(e)}")
-
+        
         # Prepare request parameters
-        request_params = {
-            'parent': space_name,
-            'pageSize': min(page_size, 1000)  # Enforce API limit of 1000
-        }
-
+        request_params = {'parent': space_name, 'pageSize': min(page_size, 1000)}  # Enforce API limit
+        
         # Add optional parameters if provided
         if filter_str:
-            logger.info(f"Using filter string in API request: {filter_str}")
             request_params['filter'] = filter_str
         if page_token:
             request_params['pageToken'] = page_token
@@ -83,14 +74,26 @@ async def list_space_messages(space_name: str,
             request_params['orderBy'] = order_by
         if show_deleted:
             request_params['showDeleted'] = show_deleted
-
+            
         # Make API request
+        logger.info(f"Making API request with params: {request_params}")
         response = service.spaces().messages().list(**request_params).execute()
 
         # Extract messages and next page token
         messages = response.get('messages', [])
         next_page_token = response.get('nextPageToken')
         
+        # Log timestamp details of retrieved messages for debugging date filter issues
+        if start_date and len(messages) > 0:
+            logger.info(f"Date filtering: First message createTime: {messages[0].get('createTime', 'unknown')}")
+            logger.info(f"Date filtering: Looking for messages on/after: {start_date}")
+            if end_date:
+                logger.info(f"Date filtering: Looking for messages on/before: {end_date}")
+        elif start_date and len(messages) == 0:
+            logger.warning(f"Date filtering: No messages found for filter: {filter_str}")
+            logger.warning(f"API response keys: {list(response.keys())}")
+            logger.warning(f"API response snippet: {str(response)[:200]}...")
+            
         logger.info(f"Retrieved {len(messages)} messages from space {space_name}")
 
         # Add sender information if requested
@@ -114,6 +117,7 @@ async def list_space_messages(space_name: str,
         }
 
     except Exception as e:
+        logger.error(f"Failed to list messages in space: {str(e)}")
         raise Exception(f"Failed to list messages in space: {str(e)}")
 
 

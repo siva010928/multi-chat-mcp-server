@@ -75,12 +75,19 @@ def create_date_filter(start_date: Union[str, datetime.datetime, None],
     """
     Create an API filter string for date ranges that works with Google Chat API.
     
+    NOTE: The Google Chat API requires quotes around RFC 3339 timestamp values in filter expressions.
+    This function properly formats the filter string with quotes to ensure compatibility.
+    
+    Example formats:
+        - Single date: 'createTime > "2024-05-01T00:00:00Z"'
+        - Date range: 'createTime > "2024-05-01T00:00:00Z" AND createTime < "2024-05-31T23:59:59.999999Z"'
+    
     Args:
         start_date: Start date (YYYY-MM-DD string or datetime object)
         end_date: Optional end date (YYYY-MM-DD string or datetime object)
         
     Returns:
-        Filter string suitable for the Google Chat API
+        Filter string suitable for the Google Chat API with properly quoted timestamp values
         
     Raises:
         ValueError: If dates are in incorrect format
@@ -98,11 +105,9 @@ def create_date_filter(start_date: Union[str, datetime.datetime, None],
         end_formatted = rfc3339_format(end_dt)
         
         # Create filter with both start and end dates
+        # Google Chat API requires quotes around timestamp values
         return f'createTime > "{start_formatted}" AND createTime < "{end_formatted}"'
     else:
-        # Just one day - calculate next day for range
-        next_day_dt = start_dt + datetime.timedelta(days=1)
-        next_day_formatted = rfc3339_format(next_day_dt)
-        
-        # Create filter for single day
-        return f'createTime > "{start_formatted}" AND createTime < "{next_day_formatted}"' 
+        # Only start date provided - just filter for messages after this date
+        # This allows finding ALL messages from the start date onwards
+        return f'createTime > "{start_formatted}"' 

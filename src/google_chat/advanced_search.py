@@ -1,13 +1,16 @@
 """
 Advanced Search Integration - Connect SearchManager with Google Chat API
 """
-import datetime
+import json
 import logging
 import re
 import traceback
-from typing import Optional
+import datetime
+from typing import Dict, List, Optional, Union, Tuple, Any
 
-from src.google_chat.messages import exact_search_messages, list_chat_spaces, list_space_messages
+from src.google_chat.auth import get_credentials
+from src.google_chat.spaces import list_chat_spaces
+from src.google_chat.messages import exact_search_messages, list_space_messages
 from src.google_chat.utils import create_date_filter, rfc3339_format, parse_date
 from src.search_manager import SearchManager
 
@@ -116,25 +119,42 @@ async def advanced_search_messages(
         try:
             logger.info(f"Creating date filter from start_date={start_date}, end_date={end_date}")
             
-            # Use the utility function to create a properly formatted date filter
+            # Use the create_date_filter function that properly adds quotes around timestamps
             date_filter = create_date_filter(start_date, end_date)
             
-            # Log the created filter for debugging
             logger.info(f"Date filter created: {date_filter}")
         except ValueError as e:
-            logger.error(f"Invalid date format: start={start_date}, end={end_date}. Error: {str(e)}")
+            logger.error(f"Invalid date format: {str(e)}")
             raise ValueError(f"Invalid date format: {str(e)}")
     
-    # Combine with any existing filter
-    combined_filter = date_filter
-    if filter_str:
-        filter_str = filter_str.strip()  # Remove any extra spaces from the user filter
-        if combined_filter:
-            combined_filter = f"({combined_filter}) AND ({filter_str})"  # Use parentheses for clarity and precedence
+    # Combine date filter with any other filters if needed
+    combined_filter = None
+    if date_filter:
+        if filter_str:
+            combined_filter = f"{filter_str} AND ({date_filter})"
         else:
-            combined_filter = filter_str
+            combined_filter = date_filter
+    else:
+        combined_filter = filter_str
+        
+    if combined_filter:
+        logger.info(f"Combined filter: {combined_filter}")
+    
+    # For semantic search, check if the filter is causing empty results
+    if search_mode == "semantic" and start_date and not end_date:
+        logger.info("Special handling for semantic search with only start_date")
+        
+        # Check if the date is in the future, which might cause empty results
+        try:
+            start_dt = parse_date(start_date, "start")
+            current_dt = datetime.datetime.now(datetime.timezone.utc)
             
-    logger.info(f"Combined filter: {combined_filter}")
+            if start_dt > current_dt:
+                logger.warning(f"Search date {start_date} is in the future (current time: {current_dt.isoformat()})")
+                logger.warning("Future dates may return empty results for spaces with no messages yet")
+        except ValueError:
+            # If date parsing fails, we already logged this, so continue
+            pass
     
     # For exact search only, we can use the API's basic filtering
     if search_mode == "exact":
@@ -146,18 +166,9 @@ async def advanced_search_messages(
                 spaces=spaces,
                 max_results=max_results,
                 include_sender_info=include_sender_info,
-                filter_str=combined_filter
+                filter_str=filter_str
             )
             logger.info(f"API search completed, found {len(api_result.get('messages', []))} messages")
-            
-            # For debugging: log timestamp details of any found messages
-            found_messages = api_result.get('messages', [])
-            for i, msg in enumerate(found_messages[:3]):  # Log details of first few messages
-                create_time = msg.get('createTime', 'unknown')
-                logger.info(f"Found message {i+1} createTime: {create_time}")
-                if start_date and end_date:
-                    logger.info(f"Message {i+1} should be within date filter: {date_filter}")
-            
             return api_result
         except Exception as e:
             logger.error(f"API search failed: {str(e)}")
@@ -190,55 +201,55 @@ async def advanced_search_messages(
     for space_name in spaces_to_search:
         try:
             logger.info(f"Fetching messages from space: {space_name}")
-            space_messages = await list_space_messages(
-                space_name,
-                include_sender_info=include_sender_info,
-                page_size=max_results,  # Fetch enough to search through
-                filter_str=combined_filter
-            )
+            
+            # First try with date filter
+            if start_date:
+                try:
+                    logger.info(f"Attempting to fetch messages with date filter")
+                    space_messages = await list_space_messages(
+                        space_name,
+                        start_date=start_date,
+                        end_date=end_date,
+                        include_sender_info=include_sender_info,
+                        page_size=max_results,
+                        filter_str=filter_str  # Original filter_str, date filter added by list_space_messages
+                    )
+                    
+                    if len(space_messages.get('messages', [])) == 0 and search_mode == "semantic":
+                        # For semantic search, if date filter gives no results, try without date filter
+                        logger.info(f"No messages found with date filter, trying without date filter for semantic search")
+                        space_messages = await list_space_messages(
+                            space_name,
+                            include_sender_info=include_sender_info,
+                            page_size=max_results,
+                            filter_str=filter_str  # Only the original filter
+                        )
+                except Exception as e:
+                    logger.warning(f"Error fetching messages with date filter: {str(e)}")
+                    if search_mode == "semantic":
+                        # Fallback to no date filter for semantic search
+                        logger.info(f"Falling back to no date filter for semantic search")
+                        space_messages = await list_space_messages(
+                            space_name,
+                            include_sender_info=include_sender_info,
+                            page_size=max_results,
+                            filter_str=filter_str
+                        )
+                    else:
+                        # Re-raise for non-semantic searches
+                        raise
+            else:
+                # No date filtering needed
+                space_messages = await list_space_messages(
+                    space_name,
+                    include_sender_info=include_sender_info,
+                    page_size=max_results,
+                    filter_str=filter_str
+                )
             
             # Add space info to each message
             messages = space_messages.get('messages', [])
-            logger.info(f"Received {len(messages)} messages from space {space_name}")
-            
-            # Log the first few messages to help with debugging
-            if messages and len(messages) > 0:
-                logger.info(f"First message createTime: {messages[0].get('createTime', 'unknown')}")
-                
-                # If we have date filtering, check if the messages are actually within range
-                if date_filter and messages:
-                    try:
-                        # Get a sample message timestamp
-                        sample_time = messages[0].get('createTime', '')
-                        logger.info(f"Sample message time: {sample_time}")
-                        logger.info(f"Date filter being applied: {date_filter}")
-                    except Exception as e:
-                        logger.error(f"Error checking message timestamps: {str(e)}")
-                
-                for i, msg in enumerate(messages[:2]):
-                    text = msg.get('text', '')[:100]
-                    logger.debug(f"Sample message {i+1}: {text}...")
-                    
-                    # Explicitly check if the query appears in the text (case insensitive)
-                    if search_mode == "regex":
-                        try:
-                            pattern = re.compile(query, re.IGNORECASE)
-                            if text and pattern.search(text):
-                                logger.debug(f"✅ Message {i+1} matches regex pattern '{query}'")
-                            else:
-                                logger.debug(f"❌ Message {i+1} does NOT match regex pattern '{query}'")
-                        except re.error:
-                            # If regex is invalid, check for simple substring
-                            if query.lower() in text.lower():
-                                logger.debug(f"✅ Message {i+1} contains substring '{query}'")
-                            else:
-                                logger.debug(f"❌ Message {i+1} does NOT contain substring '{query}'")
-                    else:
-                        # For other search modes, just check for substring
-                        if query.lower() in text.lower():
-                            logger.debug(f"✅ Message {i+1} contains substring '{query}'")
-                        else:
-                            logger.debug(f"❌ Message {i+1} does NOT contain substring '{query}'")
+            logger.info(f"Retrieved {len(messages)} messages from space {space_name}")
             
             for msg in messages:
                 msg["space_info"] = {"name": space_name}
@@ -255,11 +266,25 @@ async def advanced_search_messages(
             logger.debug(traceback.format_exc())
             continue
     
+    # Log the total messages collected
     logger.info(f"Total messages collected for search: {len(all_messages)}")
     
+    # If no messages found, return early
     if not all_messages:
         logger.warning("No messages found to search")
-        return {'messages': [], 'nextPageToken': None}
+        return {
+            'messages': [],
+            'nextPageToken': None,
+            'space_info': {'searched_spaces': spaces_to_search},
+            'search_metadata': {
+                'query': query,
+                'mode': search_mode,
+                'found_count': 0,
+                'searched_count': 0
+            },
+            'search_complete': True,
+            'source': 'search_messages'
+        }
     
     # Apply advanced search using the search manager
     logger.info(f"Running {search_mode} search on {len(all_messages)} messages")
@@ -288,7 +313,7 @@ async def advanced_search_messages(
         return {
             'messages': result_messages,
             'nextPageToken': None,  # No pagination in this implementation
-            'space_info': {'searched_spaces': spaces_to_search} if spaces_to_search else None,
+            'space_info': {'searched_spaces': spaces} if spaces else None,
             'search_metadata': {
                 'query': query,
                 'mode': search_mode,

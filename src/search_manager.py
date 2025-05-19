@@ -114,8 +114,8 @@ class SearchManager:
                 score = weight * (0.6 + 0.2 * match_count + 0.2 * position_factor)
                 results.append((score, msg))
                 
-        # Sort by score (descending)
-        results.sort(reverse=True)
+        # Sort by score (descending) using only the score value for comparison
+        results.sort(key=lambda x: x[0], reverse=True)
         return results
         
     def _regex_search(self, query: str, messages: list[dict]) -> list[tuple[float, dict]]:
@@ -156,8 +156,8 @@ class SearchManager:
             # Fallback to exact search if regex is invalid
             return self._exact_search(query, messages)
         
-        # Sort by score (descending)
-        results.sort(reverse=True)
+        # Sort by score (descending) using only the score value for comparison
+        results.sort(key=lambda x: x[0], reverse=True)
         return results
         
     def _semantic_search(self, query: str, messages: list[dict]) -> list[tuple[float, dict]]:
@@ -201,8 +201,8 @@ class SearchManager:
         
         logger.info(f"Semantic search found {match_count} matches above threshold {similarity_threshold}")
         
-        # Sort by score (descending)
-        results.sort(reverse=True)
+        # Sort by score (descending) using only the score value for comparison
+        results.sort(key=lambda x: x[0], reverse=True)
         return results
     
     def _hybrid_search(self, query: str, messages: list[dict]) -> list[tuple[float, dict]]:
@@ -251,8 +251,8 @@ class SearchManager:
         for msg_id, score in msg_scores.items():
             combined_results.append((score, all_results[msg_id]))
         
-        # Sort by combined score (descending)
-        combined_results.sort(reverse=True)
+        # Sort by combined score (descending) using only the score value for comparison
+        combined_results.sort(key=lambda x: x[0], reverse=True)
         return combined_results
 
 class SemanticSearchProvider:

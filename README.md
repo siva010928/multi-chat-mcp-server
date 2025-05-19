@@ -1,30 +1,17 @@
+# Google Chat MCP Server
+
 ## Project Overview
 
 This project provides a server implementation for the Model Control Protocol (MCP) that integrates with the Google Chat API, allowing AI assistants to interact with Google Chat. Once configured, the MCP client (e.g., Cursor) will manage the server lifecycle automatically when needed.
 
-## Architecture Diagrams
+The Google Chat MCP Server enables AI assistants to perform rich, interactive operations with Google Chat, including sending messages, searching conversations, managing spaces, and accessing user information. It handles all OAuth authentication, token management, and API interactions to provide a seamless experience.
 
-The following diagrams provide a visual representation of the Google Chat MCP server's architecture and workflows:
-
-### System Architecture
-![System Architecture](diagrams/architectural_diagram.svg)
-*High-level architecture diagram showing the main components of the Google Chat MCP system and their interactions.*
-
-### Authentication Flow
-![Authentication Flow](diagrams/authentication_flow_diagram.svg)
-*Detailed authentication flow showing the OAuth 2.0 process used to authenticate with Google Chat API.*
-
-### Data Flow
-![Data Flow](diagrams/data_flow_diagram.svg)
-*Complete data flow sequence from user request through the MCP client, server, authentication, and API interactions.*
-
-### User Workflow
-![User Workflow](diagrams/user_flow_diagram.svg)
-*End-to-end user workflow covering setup, configuration, and usage patterns for the Google Chat MCP.*
-
-### Tools Structure
-![Tools Structure](diagrams/tools_diagram.svg)
-*Structured overview of all available tools and their parameters for interacting with Google Chat.*
+Key benefits of this implementation:
+- **Seamless Integration**: Works directly with Cursor and other MCP-compatible AI assistants
+- **Comprehensive API Coverage**: Supports most Google Chat API operations
+- **Enterprise Ready**: Designed for use in Google Workspace environments
+- **Advanced Search**: Includes regex, exact, and semantic search capabilities
+- **Enhanced User Information**: Provides detailed sender information with messages
 
 ## Features
 
@@ -158,7 +145,33 @@ Replace `/path/to/google-chat-mcp-server` with the actual path to your repositor
 
 > **Note**: After completing this setup, you can close this project. The MCP client (e.g., Cursor) will automatically start and manage the server process when you use Google Chat MCP tools in your AI assistant. You don't need to manually start the server each time - the AI tool's MCP client will handle starting and stopping the server as needed. Once you've authenticated and configured everything, you can move on to other projects while still having access to all the Google Chat MCP functionality.
 
-### 4. Running Tests
+## Architecture Diagrams
+
+The following diagrams provide a visual representation of the Google Chat MCP server's architecture and workflows:
+
+### System Architecture
+![System Architecture](diagrams/architectural_diagram.svg)
+*High-level architecture diagram showing the main components of the Google Chat MCP system and their interactions.*
+
+### Authentication Flow
+![Authentication Flow](diagrams/authentication_flow_diagram.svg)
+*Detailed authentication flow showing the OAuth 2.0 process used to authenticate with Google Chat API.*
+
+### Data Flow
+![Data Flow](diagrams/data_flow_diagram.svg)
+*Complete data flow sequence from user request through the MCP client, server, authentication, and API interactions.*
+
+### User Workflow
+![User Workflow](diagrams/user_flow_diagram.svg)
+*End-to-end user workflow covering setup, configuration, and usage patterns for the Google Chat MCP.*
+
+### Tools Structure
+![Tools Structure](diagrams/tools_diagram.svg)
+*Structured overview of all available tools and their parameters for interacting with Google Chat.*
+
+## Testing
+
+### Running Tests
 
 The project includes a comprehensive test suite. To run the tests:
 
@@ -176,6 +189,8 @@ python -m pytest src/tools/tests/test_user_tools.py
 python -m pytest src/tools/tests/ --cov=src.tools --cov-report=term-missing -v
 ```
 
+### Test Structure
+
 The test structure is organized as follows:
 
 ```
@@ -184,7 +199,26 @@ src/
   google_chat/tests/     - Tests for core functionality
 ```
 
-See `TEST_IMPROVEMENTS.md` for detailed information about test coverage and future improvements.
+Tests can be run directly using `pytest`:
+
+```bash
+# Run all tests
+python -m pytest
+
+# Run tests with verbose output
+python -m pytest -v
+
+# Run a specific test module
+python -m pytest src/tools/tests/test_auth_tools.py
+
+# Run tests with coverage report
+python -m pytest --cov=src
+
+# Run tests matching a specific pattern
+python -m pytest -k "search"
+```
+
+See `docs/TEST_IMPROVEMENTS.md` for detailed information about test coverage and future improvements.
 
 ## Available Tools
 
@@ -269,6 +303,40 @@ The following tools are available to interact with Google Chat:
     - `page_token` (string, optional): Token for retrieving the next page of results
   - Returns: Dictionary with messages mentioning you and nextPageToken for pagination
 
+#### Date Filtering in Search
+
+The `search_messages_tool` supports powerful date filtering capabilities to narrow down your search results by message creation time. This is especially useful for finding messages within specific time frames or recent conversations.
+
+Date filtering uses the YYYY-MM-DD format (e.g., "2024-05-01") and supports:
+
+1. **Start date only** - Filter messages after a specific date:
+   ```json
+   {
+     "query": "project status",
+     "search_mode": "regex",
+     "spaces": ["spaces/AAQAXL5fJxI"],
+     "start_date": "2024-05-01"
+   }
+   ```
+   This returns all messages created *after* May 1st, 2024.
+
+2. **Date range** - Filter messages between two dates:
+   ```json
+   {
+     "query": "meeting notes",
+     "search_mode": "semantic",
+     "spaces": ["spaces/AAQAXL5fJxI"],
+     "start_date": "2024-05-01",
+     "end_date": "2024-05-31"
+   }
+   ```
+   This returns messages created after May 1st and before May 31st, 2024.
+
+Important notes on date filtering:
+- The Google Chat API uses `>` (greater than) for start dates and `<` (less than) for end dates, not `>=` or `<=`.
+- For semantic searches, date filtering is treated as a preference rather than a strict requirement. If no messages match the date filter, the search will fall back to finding semantically relevant messages even outside the date range.
+- For non-semantic searches (regex, exact), date filtering is strictly enforced.
+
 ### User Information
 - **`mcp_google_chat_get_my_user_info_tool`** - Get your Google Chat user details
   - Parameters: none
@@ -301,102 +369,33 @@ The following tools are available to interact with Google Chat:
     - `user_emails` (array of strings, required): Email addresses to add/remove
   - Returns: Response with operation results
 
-## Date Filtering in Message Search
+### File Handling
+- **`mcp_google_chat_upload_attachment_tool`** - Upload a file as an attachment to a message
+  - Parameters:
+    - `space_name` (string, required): Space identifier
+    - `file_path` (string, required): Path to the file to upload
+    - `message_text` (string, optional): Additional text to include with the attachment
+  - Returns: Created message object with attachment
 
-The `search_messages_tool` supports powerful date filtering capabilities to narrow down your search results by message creation time. This is especially useful for finding messages within specific time frames or recent conversations.
+- **`mcp_google_chat_send_file_message_tool`** - Send file contents as a message
+  - Parameters:
+    - `space_name` (string, required): Space identifier
+    - `file_path` (string, required): Path to the file whose contents to send
+    - `message_text` (string, optional): Additional text to include with the file content
+  - Returns: Created message object
 
-### Date Filter Syntax
+- **`mcp_google_chat_send_file_content_tool`** - Send file content as a formatted message
+  - Parameters:
+    - `space_name` (string, required): Space identifier
+    - `file_path` (string, optional): Path to the file to send (defaults to sample file if not provided)
+  - Returns: Created message object
 
-Date filtering uses the YYYY-MM-DD format (e.g., "2024-05-01") and supports:
-
-1. **Start date only** - Filter messages after a specific date:
-   ```json
-   {
-     "query": "project status",
-     "search_mode": "regex",
-     "spaces": ["spaces/AAQAXL5fJxI"],
-     "start_date": "2024-05-01"
-   }
-   ```
-   This returns all messages created *after* May 1st, 2024.
-
-2. **Date range** - Filter messages between two dates:
-   ```json
-   {
-     "query": "meeting notes",
-     "search_mode": "semantic",
-     "spaces": ["spaces/AAQAXL5fJxI"],
-     "start_date": "2024-05-01",
-     "end_date": "2024-05-31"
-   }
-   ```
-   This returns messages created after May 1st and before May 31st, 2024.
-
-### Important Notes on Date Filtering
-
-- The Google Chat API uses `>` (greater than) for start dates and `<` (less than) for end dates, not `>=` or `<=`.
-- For semantic searches, date filtering is treated as a preference rather than a strict requirement. If no messages match the date filter, the search will fall back to finding semantically relevant messages even outside the date range.
-- For non-semantic searches (regex, exact), date filtering is strictly enforced.
-- When searching with future dates, results will remain empty until messages exist for that timeframe.
-- For finding messages on a specific day only, use that day as `start_date` and the next day as `end_date`.
-
-### Best Practices
-
-1. **Finding today's messages:**
-   ```json
-   {
-     "query": ".*",
-     "search_mode": "regex",
-     "start_date": "2024-05-19"
-   }
-   ```
-
-2. **Finding messages from a specific month:**
-   ```json
-   {
-     "query": "budget",
-     "start_date": "2024-05-01",
-     "end_date": "2024-05-31"
-   }
-   ```
-
-3. **Finding all messages since a specific date:**
-   ```json
-   {
-     "query": ".*",
-     "search_mode": "regex",
-     "start_date": "2024-01-01"
-   }
-   ```
-
-## Test Structure
-
-The Google Chat MCP tests are organized into modular test modules:
-
-- `src/tools/tests/test_auth_tools.py` - Authentication related tests
-- `src/tools/tests/test_message_tools.py` - Message related tests
-- `src/tools/tests/test_search_tools.py` - Search related tests
-- `src/tools/tests/test_space_tools.py` - Space related tests
-
-### Running Tests
-
-Tests can be run directly using `pytest`:
-
-```bash
-# Run all tests
-python -m pytest
-
-# Run tests with verbose output
-python -m pytest -v
-
-# Run a specific test module
-python -m pytest src/tools/tests/test_auth_tools.py
-
-# Run tests with coverage report
-python -m pytest --cov=src
-
-# Run tests matching a specific pattern
-python -m pytest -k "search"
-```
-
-> Note: The legacy `test_google_chat_tools.py` file now redirects to the modular test structure.
+### Batch Operations
+- **`mcp_google_chat_batch_send_messages_tool`** - Send multiple messages in one operation
+  - Parameters:
+    - `messages` (array, required): List of message objects to send, each containing:
+      - `space_name` (string, required): Space identifier
+      - `text` (string, required): Message content
+      - `thread_key` (string, optional): Thread to reply to
+      - `cards_v2` (object, optional): Card content
+  - Returns: Dictionary with results for each message

@@ -1,0 +1,101 @@
+@startuml
+'
+' Google Chat MCP - Authentication Flow
+'
+
+skinparam {
+  BackgroundColor white
+  SequenceArrowThickness 1.5
+  SequenceGroupBodyBackgroundColor WhiteSmoke
+  ParticipantBackgroundColor #f8f8f8
+  NoteBackgroundColor #ffffee
+  NoteBorderColor #999999
+  LifeLineStrategy solid
+}
+
+title "Google Chat MCP - Authentication Flow"
+
+actor User as user
+participant "Local Auth\nServer" as auth_server
+participant "Google Chat\nMCP Server" as mcp_server
+participant "Token\nManager" as token_manager
+participant "Google OAuth\nService" as google
+database "credentials.json" as creds_file
+database "token.json" as token_file
+
+== Initial OAuth Setup ==
+
+user -> auth_server : Run "python server.py -local-auth"
+activate auth_server
+auth_server -> auth_server : Start FastAPI server on port 8000
+auth_server -> user : Server ready at http://localhost:8000/auth
+
+user -> auth_server : Access /auth endpoint
+activate user
+auth_server -> auth_server : Check for existing token
+auth_server -> creds_file : Read client credentials
+
+alt No token exists or token is invalid
+    auth_server -> google : OAuth request with offline access\n(access_type=offline, prompt=consent)
+    activate google
+    google -> user : Redirect to Google consent screen
+    user -> google : Grant permissions for requested scopes\n(Chat API, People API)
+    google -> auth_server : Redirect to /auth/callback with auth code
+    deactivate google
+    
+    auth_server -> google : Exchange code for tokens with refresh_token request
+    activate google
+    google -> auth_server : Return access_token + refresh_token + expiry
+    deactivate google
+    
+    auth_server -> token_file : Save tokens to token.json
+    auth_server -> user : Authentication successful
+else Token exists and is valid
+    auth_server -> user : Already authenticated
+end
+deactivate auth_server
+deactivate user
+
+note right of auth_server
+  <b>OAuth Implementation Details</b>
+  - Uses InstalledAppFlow from google_auth_oauthlib
+  - Requests offline access to get refresh token
+  - Forces consent screen to ensure refresh token
+  - Securely stores tokens in token.json
+end note
+
+== MCP Server Authentication ==
+
+user -> mcp_server : AI Assistant makes Google Chat tool request
+activate mcp_server
+mcp_server -> token_manager : Need authentication for API call
+activate token_manager
+token_manager -> token_file : Load credentials from token.json
+token_file -> token_manager : Return stored credentials
+
+alt Access token is expired
+    token_manager -> google : Request token refresh using refresh_token
+    activate google
+    google -> token_manager : Return new access_token
+    deactivate google
+    token_manager -> token_file : Update token.json with new access_token
+end
+
+token_manager -> mcp_server : Provide valid credentials
+deactivate token_manager
+mcp_server -> google : Make Google Chat API call with valid token
+activate google
+google -> mcp_server : API response
+deactivate google
+mcp_server -> user : Return result to AI Assistant
+deactivate mcp_server
+
+note right of token_manager
+  <b>Token Management</b>
+  - Automatically checks token expiry
+  - Handles refresh token flow
+  - Updates stored tokens with new access tokens
+  - Uses Credentials from google.oauth2.credentials
+end note
+
+@enduml 

@@ -1,0 +1,179 @@
+@startuml
+'
+' Google Chat MCP - Tool Structure Diagram (Vertical Layout)
+'
+
+skinparam {
+  BackgroundColor white
+  ArrowColor #666
+  PackageBackgroundColor #f8f8f8
+  PackageBorderColor #aaaaaa
+  ClassBackgroundColor WhiteSmoke
+  ClassBorderColor #888888
+  NoteBackgroundColor #ffffee
+  NoteBorderColor #999999
+  DefaultFontSize 9
+  Padding 2
+  Shadowing false
+  RoundCorner 10
+  ClassAttributeIconSize 0
+}
+
+title "Google Chat MCP - Tool Structure"
+
+' Core MCP component
+package "MCP Server Core" as server {
+  class "MCP FastAPI Server" as server_class {
+    + register_tool()
+    + run()
+  }
+}
+
+' Tool grid - 3 columns layout
+together {
+  ' Column 1
+  package "Message Tools" as msg_tools {
+    class "Send Message" as send_message {
+      space_name: string (req)
+      text: string (req)
+    }
+    
+    class "Reply Thread" as reply_thread {
+      space_name: string (req)
+      thread_key: string (req)
+      text: string (req)
+    }
+    
+    class "Update Message" as update_message {
+      message_name: string (req)
+      new_text: string (req)
+    }
+    
+    class "Delete Message" as delete_message {
+      message_name: string (req)
+    }
+    
+    class "Get Message" as get_message {
+      message_name: string (req)
+      include_sender_info: boolean
+    }
+    
+    class "Add Emoji" as add_emoji {
+      message_name: string (req)
+      emoji: string (req)
+    }
+    
+    class "Batch Send" as batch_send {
+      messages: array (req)
+    }
+  }
+  
+  ' Column 2
+  package "Space & Search Tools" as space_search_tools {
+    class "Get Spaces" as get_spaces {
+      (no parameters)
+    }
+    
+    class "Space Messages" as space_messages {
+      space_name: string (req)
+      start_date: string (req)
+      end_date: string
+      include_sender_info: boolean
+      page_size: integer
+      page_token: string
+      filter_str: string
+      order_by: string
+      show_deleted: boolean
+    }
+    
+    class "Manage Members" as manage_members {
+      space_name: string (req)
+      operation: string (req)
+      user_emails: array (req)
+    }
+    
+    class "Search Messages" as search_messages {
+      query: string (req)
+      search_mode: string
+      spaces: array
+      max_results: integer
+      include_sender_info: boolean
+      start_date: string
+      end_date: string
+      filter_str: string
+    }
+    
+    class "Get Mentions" as get_mentions {
+      days: integer
+      space_id: string
+      include_sender_info: boolean
+      page_size: integer
+      page_token: string
+    }
+    
+    class "Summarize" as summarize {
+      space_name: string (req)
+      message_limit: integer
+      start_date: string
+      end_date: string
+      page_token: string
+      filter_str: string
+    }
+  }
+}
+
+together {
+  ' Column 3
+  package "User & File Tools" as user_file_tools {
+    class "My User Info" as my_info {
+      (no parameters)
+    }
+    
+    class "User Info by ID" as user_info {
+      user_id: string (req)
+    }
+    
+    class "Message with Sender" as message_with_sender {
+      message_name: string (req)
+    }
+    
+    class "Get Participants" as get_participants {
+      space_name: string (req)
+      start_date: string
+      end_date: string
+      max_messages: integer
+    }
+    
+    class "Upload Attachment" as upload_attachment {
+      space_name: string (req)
+      file_path: string (req)
+      message_text: string
+    }
+    
+    class "Send File Content" as send_file {
+      space_name: string (req)
+      file_path: string
+    }
+    
+    class "List Messages with Sender" as list_with_sender {
+      space_name: string (req)
+      start_date: string
+      end_date: string
+      limit: integer
+      page_token: string
+    }
+  }
+}
+
+' Connections
+server_class -down-> msg_tools : registers
+server_class -down-> space_search_tools : registers
+server_class -down-> user_file_tools : registers
+
+note bottom of server
+  **MCP Server**
+  Registers all tools and handles
+  JSON-RPC requests from clients
+end note
+
+@enduml 

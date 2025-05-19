@@ -1,0 +1,103 @@
+@startuml
+'
+' Google Chat MCP Server - Architecture
+'
+
+skinparam {
+  ComponentStyle rectangle
+  BackgroundColor white
+  ArrowColor #666
+  FontName "Arial"
+  DefaultFontSize 12
+  DefaultTextAlignment center
+}
+
+title "Google Chat MCP Server - Architecture"
+
+' Main Components with more details
+actor "User" as user
+component "<b>MCP Client (Cursor)" as mcp_client #LightBlue {
+  [AI Assistant] as ai
+  [MCP Client Runtime] as runtime
+}
+
+component "<b>Google Chat MCP Server" as mcpserver #PaleGreen {
+  package "Core Layer" {
+    [FastMCP Instance] as fastmcp
+    [Server Runtime] as server_runtime
+  }
+
+  package "Auth Layer" {
+    [Auth Server] as auth_server
+    [Token Manager] as token_manager
+    database "token.json" as token_file
+    database "credentials.json" as creds_file
+  }
+
+  package "Tool Layer" {
+    [Message Tools] as msg_tools
+    [Space Tools] as space_tools
+    [Search Tools] as search_tools
+    [User Tools] as user_tools
+    [Attachment Tools] as attach_tools
+  }
+
+  package "Google Chat Layer" {
+    [Chat Client] as chat_client
+    [People Client] as people_client
+  }
+}
+
+cloud "<b>Google Cloud" as google #LightSkyBlue {
+  [Google Chat API] as chat_api
+  [People API] as people_api
+  [OAuth 2.0] as oauth
+}
+
+' Data flow with key details
+user -right-> ai : Request\n(e.g., "send a message")
+ai -down-> runtime : Tool invocation
+runtime -right-> fastmcp : MCP protocol\nrequests
+server_runtime -up-> fastmcp : Initializes
+
+' Tool registration
+fastmcp -down-> msg_tools : registers
+fastmcp -down-> space_tools : registers
+fastmcp -down-> search_tools : registers
+fastmcp -down-> user_tools : registers
+fastmcp -down-> attach_tools : registers
+
+' Authentication flows
+auth_server -right-> oauth : OAuth requests
+oauth -left-> auth_server : Auth tokens
+auth_server -down-> token_file : Stores tokens
+creds_file -up-> auth_server : Client credentials
+token_manager -right-> token_file : Reads/writes
+token_manager -up-> chat_client : Provides tokens
+token_manager -up-> people_client : Provides tokens
+
+' API client connections
+chat_client -up-> chat_api : API calls
+people_client -up-> people_api : API calls
+
+' Tool-to-client connections
+msg_tools -right-> chat_client : Uses
+space_tools -right-> chat_client : Uses
+search_tools -right-> chat_client : Uses
+user_tools -right-> people_client : Uses
+attach_tools -right-> chat_client : Uses
+
+note bottom of mcpserver
+  <b>Google Chat MCP Server
+  Integrates with Google Chat API through the Model Control Protocol,
+  handling authentication, request processing, and response formatting
+end note
+
+note bottom of google
+  <b>Google APIs Used:
+  - Google Chat API: Messages, spaces, threads, reactions
+  - People API: User profiles, contact information
+  - OAuth 2.0: Authentication and token management
+end note
+
+@enduml 

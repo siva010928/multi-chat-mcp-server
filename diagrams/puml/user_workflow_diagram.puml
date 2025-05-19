@@ -1,0 +1,104 @@
+@startuml
+' Google Chat MCP - User Workflow
+
+skinparam {
+  BackgroundColor white
+  ArrowColor #666
+  NoteBackgroundColor #ffffee
+  NoteBorderColor #999999
+  ActivityBackgroundColor #f8f8f8
+  ActivityBorderColor #aaaaaa
+  ActivityDiamondBackgroundColor #f0f0f0
+  ActivityDiamondBorderColor #aaaaaa
+  ActivityFontStyle bold
+}
+
+title "Google Chat MCP - User Workflow"
+
+|User|
+start
+
+|Setup - Google Cloud|
+:Create Google Cloud Project;
+:Enable Google Chat API & People API;
+:Configure OAuth 2.0 credentials;
+note right
+  Set authorized redirect URI: 
+  http://localhost:8000/auth/callback
+end note
+:Download credentials.json;
+:Place credentials.json in project root;
+
+|Setup - Local Environment|
+:Install Google Chat MCP Server;
+:Create virtual environment;
+:Install dependencies from requirements.txt;
+:Run "python server.py -local-auth";
+:Complete OAuth authentication in browser;
+note right
+  Grants permission for:
+  - Chat API
+  - People API access
+  - Access even when offline
+end note
+:Verify token.json is created;
+
+|Setup - MCP Client|
+:Edit MCP client configuration file;
+note right
+  For Cursor, edit ~/.cursor/mcp.json:
+  
+  {
+    "google_chat": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/path/to/google-chat-mcp-server",
+        "run",
+        "-m",
+        "src.server",
+        "--token-path",
+        "/path/to/token.json"
+      ]
+    }
+  }
+end note
+
+|User Interaction|
+partition "Normal Usage" {
+  :Open MCP client with AI Assistant;
+  :Request action involving Google Chat;
+  note right: Example: "Send a message to Sales"
+  
+  |AI Assistant|
+  :Parse request to identify Google Chat tool;
+  :Format appropriate tool call parameters;
+  
+  |MCP Client|
+  :Start Google Chat MCP server process;
+  :Send tool request via MCP protocol;
+  
+  |Google Chat MCP Server|
+  :Receive tool request;
+  :Load authentication token;
+  if (Token valid?) then (yes)
+  else (no)
+    :Refresh token;
+  endif
+  :Execute appropriate tool implementation;
+  :Make Google Chat API call;
+  :Process API response;
+  :Return formatted response to MCP client;
+  
+  |AI Assistant|
+  :Process tool response;
+  :Generate user-friendly reply;
+  
+  |User|
+  :View operation result;
+  :Continue conversation;
+}
+
+stop
+
+@enduml

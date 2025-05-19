@@ -1,0 +1,192 @@
+@startuml
+' Google Chat MCP - Data Flow Diagram
+
+!define SEQUENCE_DIAGRAM
+skinparam sequenceMessageAlign center
+skinparam sequenceArrowThickness 1.5
+
+skinparam {
+    BackgroundColor white
+    ParticipantBackgroundColor #FEFEFE
+    ParticipantBorderColor #999999
+    
+    DatabaseBackgroundColor #ECECEC
+    DatabaseBorderColor #666666
+    
+    NoteBackgroundColor #FFF9C4
+    NoteBorderColor #999999
+
+    LifeLineBorderColor #CCCCCC
+    LifeLineBackgroundColor #ECECEC
+}
+
+title Google Chat MCP - Data Flow Diagram
+
+' Key actors and components
+actor "User" as user
+participant "AI Assistant" as assistant
+participant "MCP Client" as mcp_client
+participant "MCP Server" as mcp_server
+participant "Tool Handler" as tool_handler
+participant "Auth Manager" as auth_manager
+participant "API Client" as api_client
+participant "Google Chat API" as chat_api
+participant "People API" as people_api
+database "token.json" as token_file
+database "credentials.json" as creds_file
+
+' ===== Phase 1: User Request Flow =====
+group User Request Flow
+    user -> assistant : 1. Natural language request\n"Send a message to my team"
+    activate assistant
+    
+    assistant -> mcp_client : 2. Resolve to tool call
+    activate mcp_client
+    note right of assistant
+        AI identifies intent and parameters:
+        - Tool: mcp_google_chat_send_message_tool
+        - space_name: "spaces/AAQAXL5fJxI"
+        - text: "Hello team, meeting at 3pm"
+    end note
+    
+    mcp_client -> mcp_server : 3. JSON-RPC request
+    activate mcp_server
+    note right of mcp_client
+        {
+          "jsonrpc": "2.0",
+          "method": "mcp_google_chat_send_message_tool",
+          "params": {
+            "space_name": "spaces/AAQAXL5fJxI",
+            "text": "Hello team, meeting at 3pm"
+          },
+          "id": "call-1234"
+        }
+    end note
+end
+
+' ===== Phase 2: Authentication Flow =====
+group Authentication Flow
+    mcp_server -> tool_handler : 4. Forward to tool implementation
+    activate tool_handler
+    
+    tool_handler -> auth_manager : 5. Request credentials
+    activate auth_manager
+    
+    auth_manager -> token_file : 6. Read stored OAuth token
+    activate token_file
+    token_file --> auth_manager : Return token data
+    deactivate token_file
+    
+    alt Token is expired
+        auth_manager -> creds_file : 7a. Read client credentials
+        activate creds_file
+        creds_file --> auth_manager : Return client ID/secret
+        deactivate creds_file
+        
+        auth_manager -> auth_manager : 8a. Request token refresh
+        note right of auth_manager
+            POST https://oauth2.googleapis.com/token
+            grant_type=refresh_token
+            refresh_token=[stored refresh token]
+            client_id=[client ID]
+            client_secret=[client secret]
+        end note
+        
+        auth_manager -> token_file : 9a. Update stored token
+    end
+    
+    auth_manager --> tool_handler : 7. Return valid credentials
+    deactivate auth_manager
+end
+
+' ===== Phase 3: API Interaction =====
+group API Interaction
+    tool_handler -> api_client : 8. Call Chat API
+    activate api_client
+    
+    api_client -> chat_api : 9. Send API request with auth token
+    activate chat_api
+    note right of api_client
+        POST https://chat.googleapis.com/v1/spaces/{spaceName}/messages
+        Authorization: Bearer ya29.a0...
+        
+        {
+          "text": "Hello team, meeting at 3pm"
+        }
+    end note
+    
+    chat_api --> api_client : 10. Return API response
+    deactivate chat_api
+    note right of chat_api
+        {
+          "name": "spaces/AAQAXL5fJxI/messages/ABCDEF123",
+          "sender": {
+            "name": "users/12345",
+            "displayName": "AI Assistant",
+            "avatarUrl": "..."
+          },
+          "text": "Hello team, meeting at 3pm",
+          "createTime": "2023-05-10T10:15:30Z"
+        }
+    end note
+    
+    api_client --> tool_handler : 11. Return API result
+    deactivate api_client
+end
+
+' ===== Phase 4: Response Flow =====
+group Response Flow
+    tool_handler --> mcp_server : 12. Return formatted result
+    deactivate tool_handler
+    
+    mcp_server --> mcp_client : 13. JSON-RPC response
+    deactivate mcp_server
+    note left of mcp_server
+        {
+          "jsonrpc": "2.0",
+          "result": {
+            "name": "spaces/AAQAXL5fJxI/messages/ABCDEF123",
+            "text": "Hello team, meeting at 3pm",
+            "createTime": "2023-05-10T10:15:30Z"
+          },
+          "id": "call-1234"
+        }
+    end note
+    
+    mcp_client --> assistant : 14. Return structured result
+    deactivate mcp_client
+    
+    assistant --> user : 15. Natural language response\n"I've sent your message to the team"
+    deactivate assistant
+end
+
+' ===== Alternative Flow Example =====
+note across: Alternative flow for getting user information
+
+group User Info Flow (Alternative)
+    participant "User Info Tool" as user_tool
+    
+    api_client -> people_api : A1. Request user profile
+    activate people_api
+    note right of api_client
+        GET https://people.googleapis.com/v1/people/me
+        Authorization: Bearer ya29.a0...
+    end note
+    
+    people_api --> api_client : A2. Return user profile data
+    deactivate people_api
+    note right of people_api
+        {
+          "names": [{
+            "displayName": "John Doe",
+            "givenName": "John",
+            "familyName": "Doe"
+          }],
+          "emailAddresses": [{
+            "value": "john.doe@example.com"
+          }]
+        }
+    end note
+end
+
+@enduml

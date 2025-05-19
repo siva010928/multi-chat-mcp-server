@@ -92,6 +92,60 @@ Hybrid search combines multiple search approaches (regex, semantic, and exact) f
 - When you're not sure which search mode would work best
 - When you want the most comprehensive results
 
+## Date Filtering Behavior
+
+Date filtering allows you to narrow down search results to specific time periods. However, the behavior varies by search mode:
+
+### Universal Date Filter Format
+
+All date filters use the YYYY-MM-DD format (e.g., "2024-05-01").
+
+### Date Filter Behavior by Search Mode
+
+#### 1. Regex and Exact Search: Strict Filtering
+
+For regex and exact searches, date filters are **strictly enforced**:
+- If no messages match both the query AND the date filter, NO results are returned
+- The system will NOT fall back to messages outside the date range
+- Example scenario: Searching for "CICD release" from May 18-25, but the only message about this topic was from May 13
+  - Result: No messages returned (even though relevant messages exist outside the date range)
+
+#### 2. Semantic Search: Preference-Based Filtering
+
+For semantic searches, date filters are treated as **preferences rather than requirements**:
+- System first tries to find semantically relevant messages within the date range
+- If no messages match both the semantic query AND date filter, the system will:
+  1. Ignore the date filter completely
+  2. Return semantically relevant messages regardless of their creation date
+  3. Present them in order of semantic relevance
+
+**Example Scenario:**
+- Query: "quarterly financial report"
+- Date Range: From May 18, 2024 onwards
+- Available Messages:
+  - Message from May 13: "Here's the Q1 financial summary we discussed"
+  - Message from May 20: "When is the team lunch scheduled?"
+- Result: 
+  - The May 13 message will be returned, even though it's outside the date range
+  - The May 20 message will NOT be returned, even though it's within the date range
+    (because it's not semantically relevant to "quarterly financial report")
+
+This behavior ensures semantic searches prioritize finding conceptually relevant content even if it falls outside the specified date range.
+
+### Visual Example
+
+```
+Timeline:         May 13                   May 18                     May 25
+                    |                        |                          |
+Messages:      [Financial Report]            |               [Team Meeting]
+                    |                        |                          |
+Date Filter:        |<----------------Filtered Range------------------>|
+                    |                        |                          |
+Regex Results:      |  (nothing - strict filtering doesn't find matches)|
+                    |                        |                          |
+Semantic Results: [Financial Report] <--- (semantic match returned despite being outside filter)
+```
+
 ## Common Search Patterns and Use Cases
 
 ### Finding Messages About CI/CD Pipelines
@@ -132,6 +186,52 @@ search_messages(
 )
 ```
 
+**Important behavior differences:**
+
+For **regex and exact searches**, date filters are applied strictly. Only messages within the specified date range will be returned.
+
+For **semantic searches**, date filters are treated as preferences rather than strict requirements. If no messages are found within the specified date range, the search will automatically fall back to searching without date filtering. This allows finding semantically relevant messages even if they're outside the date range.
+
+### Real-World Examples
+
+**Example 1: Finding recent messages about a project**
+
+```python
+search_messages(
+  query="project aurora updates", 
+  search_mode="semantic",
+  start_date="2024-05-01"  # Looking for messages in May
+)
+```
+
+Even if the most recent message about "Project Aurora" was in April, the semantic search will still return it rather than returning no results.
+
+**Example 2: Finding messages from a specific meeting**
+
+```python
+search_messages(
+  query="weekly planning meeting",
+  search_mode="semantic",
+  start_date="2024-05-13",
+  end_date="2024-05-14"  # Looking for just May 13th
+)
+```
+
+This will try to find messages about the planning meeting on May 13th, but if none exist, it will return semantically relevant messages from other dates.
+
+**Example 3: Strict date filtering for compliance**
+
+```python
+search_messages(
+  query="compliance report",
+  search_mode="regex",  # Use regex for strict filtering
+  start_date="2024-05-01",
+  end_date="2024-05-31"  # Only May reports
+)
+```
+
+This will strictly return only messages containing "compliance report" from May, with no fallback behavior.
+
 ## Troubleshooting
 
 ### Message Not Found with Expected Search Term
@@ -156,6 +256,29 @@ If a message containing "CICD" or similar terms isn't found:
 4. **Check directly with message retrieval** if you know the date:
    ```
    get_space_messages(space_name="spaces/YOUR_SPACE_ID", start_date="2025-05-12")
+   ```
+
+### Date Filtering Not Working as Expected
+
+1. **For regex searches** - Check that messages exist in the date range:
+   ```
+   search_messages(query=".*", search_mode="regex", start_date="2024-05-01", end_date="2024-05-31")
+   ```
+   
+2. **For semantic searches** - Remember that date filters are preferences, not requirements:
+   ```
+   # This may return messages from April if they're more semantically relevant
+   search_messages(
+     query="project status", 
+     search_mode="semantic",
+     start_date="2024-05-01"
+   )
+   ```
+
+3. **For single-day searches** - Use start_date for that day and end_date for the next day:
+   ```
+   # To search only May 15th
+   search_messages(query="meeting", start_date="2024-05-15", end_date="2024-05-16")
    ```
 
 ### Too Many Irrelevant Results

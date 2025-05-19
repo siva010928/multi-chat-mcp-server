@@ -2,6 +2,30 @@
 
 This project provides a server implementation for the Model Control Protocol (MCP) that integrates with the Google Chat API, allowing AI assistants to interact with Google Chat. Once configured, the MCP client (e.g., Cursor) will manage the server lifecycle automatically when needed.
 
+## Architecture Diagrams
+
+The following diagrams provide a visual representation of the Google Chat MCP server's architecture and workflows:
+
+### System Architecture
+![System Architecture](diagrams/architectural_diagram.svg)
+*High-level architecture diagram showing the main components of the Google Chat MCP system and their interactions.*
+
+### Authentication Flow
+![Authentication Flow](diagrams/authentication_flow_diagram.svg)
+*Detailed authentication flow showing the OAuth 2.0 process used to authenticate with Google Chat API.*
+
+### Data Flow
+![Data Flow](diagrams/data_flow_diagram.svg)
+*Complete data flow sequence from user request through the MCP client, server, authentication, and API interactions.*
+
+### User Workflow
+![User Workflow](diagrams/user_flow_diagram.svg)
+*End-to-end user workflow covering setup, configuration, and usage patterns for the Google Chat MCP.*
+
+### Tools Structure
+![Tools Structure](diagrams/tools_diagram.svg)
+*Structured overview of all available tools and their parameters for interacting with Google Chat.*
+
 ## Features
 
 - Authentication with Google Chat API using OAuth 2.0
@@ -134,6 +158,34 @@ Replace `/path/to/google-chat-mcp-server` with the actual path to your repositor
 
 > **Note**: After completing this setup, you can close this project. The MCP client (e.g., Cursor) will automatically start and manage the server process when you use Google Chat MCP tools in your AI assistant. You don't need to manually start the server each time - the AI tool's MCP client will handle starting and stopping the server as needed. Once you've authenticated and configured everything, you can move on to other projects while still having access to all the Google Chat MCP functionality.
 
+### 4. Running Tests
+
+The project includes a comprehensive test suite. To run the tests:
+
+```bash
+# Activate your virtual environment if not already active
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Run all tests with coverage report
+python -m pytest
+
+# Run specific test modules
+python -m pytest src/tools/tests/test_user_tools.py
+
+# Run tests with detailed coverage information
+python -m pytest src/tools/tests/ --cov=src.tools --cov-report=term-missing -v
+```
+
+The test structure is organized as follows:
+
+```
+src/
+  tools/tests/           - Tests for MCP tools
+  google_chat/tests/     - Tests for core functionality
+```
+
+See `TEST_IMPROVEMENTS.md` for detailed information about test coverage and future improvements.
+
 ## Available Tools
 
 The following tools are available to interact with Google Chat:
@@ -249,350 +301,102 @@ The following tools are available to interact with Google Chat:
     - `user_emails` (array of strings, required): Email addresses to add/remove
   - Returns: Response with operation results
 
-### File Handling
-- **`mcp_google_chat_send_file_message_tool`** - Send a message with file contents
-  - Parameters:
-    - `space_name` (string, required): Space identifier
-    - `file_path` (string, required): Path to the file
-    - `message_text` (string, optional): Accompanying message
-  - Returns: Created message object
+## Date Filtering in Message Search
 
-- **`mcp_google_chat_send_file_content_tool`** - Send file content as a message (workaround for attachments)
-  - Parameters:
-    - `space_name` (string, required): Space identifier
-    - `file_path` (string, optional): Path to the file to send
-  - Returns: Created message object
+The `search_messages_tool` supports powerful date filtering capabilities to narrow down your search results by message creation time. This is especially useful for finding messages within specific time frames or recent conversations.
 
-- **`mcp_google_chat_upload_attachment_tool`** - Upload a file attachment to a Google Chat space
-  - Parameters:
-    - `space_name` (string, required): Space identifier
-    - `file_path` (string, required): Path to the file to upload
-    - `message_text` (string, optional): Text message to accompany the attachment
-  - Returns: The created message object with the attachment
+### Date Filter Syntax
 
-### Batch Operations
-- **`mcp_google_chat_batch_send_messages_tool`** - Send multiple messages in one operation
-  - Parameters:
-    - `messages` (array of objects, required): List of message objects to send
-  - Returns: Results for each message
+Date filtering uses the YYYY-MM-DD format (e.g., "2024-05-01") and supports:
 
-### Conversation Analysis
-- **`mcp_google_chat_get_conversation_participants_tool`** - Get information about conversation participants
-  - Parameters:
-    - `space_name` (string, required): Space identifier
-    - `start_date` (string, optional): Date in YYYY-MM-DD format
-    - `end_date` (string, optional): Date in YYYY-MM-DD format
-    - `max_messages` (integer, optional): Maximum number of messages to analyze (default: 100)
-  - Returns: Array of participant information objects
+1. **Start date only** - Filter messages after a specific date:
+   ```json
+   {
+     "query": "project status",
+     "search_mode": "regex",
+     "spaces": ["spaces/AAQAXL5fJxI"],
+     "start_date": "2024-05-01"
+   }
+   ```
+   This returns all messages created *after* May 1st, 2024.
 
-- **`mcp_google_chat_summarize_conversation_tool`** - Generate a summary of a conversation
-  - Parameters:
-    - `space_name` (string, required): Space identifier
-    - `message_limit` (integer, optional): Maximum messages to include (default: 10)
-    - `start_date` (string, optional): Date in YYYY-MM-DD format
-    - `end_date` (string, optional): Date in YYYY-MM-DD format
-    - `page_token` (string, optional): Token for retrieving the next page of results
-    - `filter_str` (string, optional): Custom filter string in Google Chat API format
-  - Returns: Dictionary with space details, participant list, and recent messages
+2. **Date range** - Filter messages between two dates:
+   ```json
+   {
+     "query": "meeting notes",
+     "search_mode": "semantic",
+     "spaces": ["spaces/AAQAXL5fJxI"],
+     "start_date": "2024-05-01",
+     "end_date": "2024-05-31"
+   }
+   ```
+   This returns messages created after May 1st and before May 31st, 2024.
 
-## Configuration Customization
+### Important Notes on Date Filtering
 
-### Constants Configuration
+- The Google Chat API uses `>` (greater than) for start dates and `<` (less than) for end dates, not `>=` or `<=`.
+- For semantic searches, date filtering is treated as a preference rather than a strict requirement. If no messages match the date filter, the search will fall back to finding semantically relevant messages even outside the date range.
+- For non-semantic searches (regex, exact), date filtering is strictly enforced.
+- When searching with future dates, results will remain empty until messages exist for that timeframe.
+- For finding messages on a specific day only, use that day as `start_date` and the next day as `end_date`.
 
-You can customize various aspects of the Google Chat MCP server by modifying constants in `src/google_chat/constants.py`:
+### Best Practices
 
-- `DEFAULT_TOKEN_PATH`: Path where the OAuth token is stored
-- `CREDENTIALS_FILE`: Path to the OAuth credentials file
-- `SCOPES`: OAuth scopes required for the application
-- `DEFAULT_CALLBACK_URL`: Callback URL for the OAuth flow
-- `SEARCH_CONFIG_YAML_PATH`: Path to the search configuration file
-
-### Search Configuration
-
-The `search_config.yaml` file in the root directory controls how the search functionality works:
-
-```yaml
-search_modes:
-  - name: "regex"  # Default search mode
-    enabled: true
-    description: "Regular expression pattern matching - case insensitive by default."
-    weight: 1.2
-    options:
-      ignore_case: true
-      dot_all: false
-      unicode: true
-      max_pattern_length: 1000
-    
-  - name: "exact"
-    enabled: true
-    description: "Basic case-insensitive substring matching - fastest but least flexible."
-    weight: 1.0
-    
-  - name: "semantic"
-    enabled: true
-    description: "Meaning-based semantic search - best for concept searching."
-    weight: 1.5
-    options:
-      model: "all-MiniLM-L6-v2"
-      cache_embeddings: true
-      cache_max_size: 10000
-      similarity_threshold: 0.2
-      similarity_metric: "cosine"
-
-search:
-  default_mode: "regex"  # The search mode to use by default
-  max_results_per_space: 50
-  combine_results_strategy: "weighted_score"
-```
-
-You can modify this file to:
-- Change the default search mode (regex, semantic, exact, hybrid)
-- Adjust weights for different search modes
-- Configure semantic search parameters like model and threshold
-- Set maximum results returned per search
-
-The LLM will use the default search mode unless explicitly specifying a different mode in the `search_mode` parameter.
-
-### Agent Rules for Tool Execution
-
-When using these tools with an AI assistant, you can define custom rules to guide how the tools are used. For example, in Cursor, you can set up specific rules for when and how the Google Chat tools should be executed:
-
-**Example Rule for Team Communication:**
-```
-If I say anything that semantically implies communicating with my team—including phrases like:
-"Update my team," "Send this to the team," "Let the team know," etc.
-
-Then interpret this as a command to send a message via the send_message tool with:
-space_name: spaces/YOUR_SPACE_ID
-text: [content from my message]
-
-For search operations, start with semantic mode, then fall back to regex if needed.
-Show me message drafts for approval when the intent or content is unclear.
-```
-
-**Comprehensive Team Communication Rule Example:**
-```
-If I say anything that even remotely, semantically or syntactically, implies communicating with my team—including, but not limited to, any of these phrases or their variants:
-
-"Catch me up with [topic/updates/etc.]" (this always triggers a search; start with semantic mode, then regex if semantic yields nothing),
-"Update my team," "Send this to the team," "Let the team know,"
-"Share with my team," "Message the team," "Convey this to them,"
-"Team should know this," "Pass this along to the team,"
-"Notify the team," "Inform them," "Tell everyone,"
-"Broadcast this," "Share this update with everyone,"
-"Remind them about [something]," "Let the group know,"
-"Team needs to hear this," "Push this to the group chat,"
-"Make sure the team is aware," "Send an alert to the team,"
-"Relay this to the team," "Tell the group," "Forward this to the team,"
-
-and any other phrasing with similar intent—you must interpret this as a command to send a message via the send_message tool in the Google Chat MCP agent.
-
-You must always use the following parameters:
-space_name: spaces/AAQAXL5fJxI
-text: [the content you construct or extract from my message]
-
-Never use any other communication channel (do not use email, Slack, SMS, etc.).
-Never switch to another Google Chat space unless I specify it explicitly by name or space ID.
-Never skip this action—ever—when a trigger phrase or its equivalent meaning is present.
-
-If you are at all unsure what to send due to missing context, unclear phrasing, or abstraction:
-1. Draft a sample message.
-2. Show it to me: "Here's what I'll send to the team. Approve?"
-3. Wait for my explicit confirmation before sending.
-
-When you are told to "catch me up with" or anything suggesting a search, always start with "semantic" mode to search for relevant messages or updates. If you do not get any results, immediately retry using "regex" mode.
-```
-
-You can customize rules like this to:
-- Specify which spaces to use by default
-- Define trigger phrases for different tools
-- Establish search preferences (e.g., try semantic first, then regex)
-- Require approval before sending messages
-- Set up conversation context handling
-
-These rules help the AI assistant choose appropriate tools and parameters automatically based on your instructions, making interactions more natural without requiring explicit tool commands.
-
-## Authentication & Token Management
-
-The Google Chat MCP server uses OAuth 2.0 authentication with refresh tokens to maintain long-term access to the Google Chat API without frequent manual re-authentication.
-
-> **Detailed Guide**: See [TOKEN_MANAGEMENT.md](TOKEN_MANAGEMENT.md) for comprehensive documentation on token management, authentication, and troubleshooting.
-
-### How Tokens Work
-
-- **Access Token**: Short-lived (usually 1 hour) token for API access
-- **Refresh Token**: Long-lived token stored in `token.json` that allows getting new access tokens without re-authenticating
-- **Automatic Refresh**: The system automatically refreshes access tokens when they expire
-
-### Token Storage
-
-- Tokens are stored in `token.json` in the project root directory (configurable with `--token-path`)
-- The token file contains both access and refresh tokens
-- Tokens are also cached in memory for better performance
-
-### Switching Accounts or Logging Out
-
-To switch to a different Google account or log out from your current account:
-
-1. Delete the token.json file from your project directory:
-   ```bash
-   rm token.json
+1. **Finding today's messages:**
+   ```json
+   {
+     "query": ".*",
+     "search_mode": "regex",
+     "start_date": "2024-05-19"
+   }
    ```
 
-2. If the server is already running, stop it first (e.g., use Ctrl+C)
-
-3. Restart the authentication server:
-   ```bash
-   python server.py -local-auth
+2. **Finding messages from a specific month:**
+   ```json
+   {
+     "query": "budget",
+     "start_date": "2024-05-01",
+     "end_date": "2024-05-31"
+   }
    ```
 
-4. Visit http://localhost:8000/auth in your browser and authenticate with the desired Google account
+3. **Finding all messages since a specific date:**
+   ```json
+   {
+     "query": ".*",
+     "search_mode": "regex",
+     "start_date": "2024-01-01"
+   }
+   ```
 
-This process will create a new token.json file with the credentials for the new account.
+## Test Structure
 
-### When to Re-authenticate
+The Google Chat MCP tests are organized into modular test modules:
 
-You'll need to re-authenticate (delete `token.json` and go through the auth flow) in these cases:
-
-1. You modified the `SCOPES` list in the code (added or removed permissions)
-2. The refresh token has expired (rare, typically after 6 months of inactivity)
-3. You've revoked access for the application in your Google account
-4. You want to authenticate with a different Google account
-5. You're using a different device or location that triggers Google's security checks
-
-> **Token Management Tools**: For manual token management and troubleshooting, the repository includes two utility scripts:
-> - `refresh_token.py`: Manually refresh an expired access token
-> - `check_token.py`: Validate and examine the current token status
-
-## Pagination Support
-
-Many Google Chat API functions now support pagination for handling large result sets:
-
-### How Pagination Works
-
-- Functions that can return many results accept a `page_size` parameter and return a `nextPageToken` in their response
-- The maximum number of results per page varies by endpoint but is typically limited to 1000 items
-- When a `nextPageToken` is present in the response, there are more results available
-
-### Using Pagination
-
-1. Make an initial request with desired `page_size` (e.g., 25, 50, 100)
-2. Check if the response contains a `nextPageToken` 
-3. To get the next page of results, make another request with the same parameters plus the `page_token` parameter set to the `nextPageToken` value from the previous response
-4. Repeat until the response no longer includes a `nextPageToken` or returns an empty one
-
-### Example Response Structure
-
-```json
-{
-  "messages": [
-    { /* message 1 */ },
-    { /* message 2 */ },
-    // ... more messages
-  ],
-  "nextPageToken": "Eg0KBW1ldGFkGgYKBAgEEAMaKQoJbWFpbF90aW1lGh..."
-}
-```
-
-### Endpoints Supporting Pagination
-
-The following functions support pagination:
-- `get_space_messages`
-- `search_messages`
-- `get_my_mentions`
-- `list_messages_with_sender_info`
-- `summarize_conversation`
-
-## Testing
-
-The repository includes a comprehensive test suite to verify functionality:
+- `src/tools/tests/test_auth_tools.py` - Authentication related tests
+- `src/tools/tests/test_message_tools.py` - Message related tests
+- `src/tools/tests/test_search_tools.py` - Search related tests
+- `src/tools/tests/test_space_tools.py` - Space related tests
 
 ### Running Tests
 
-Run the full test suite:
+Tests can be run directly using `pytest`:
 
 ```bash
-python test_google_chat_tools.py
-```
-
-Or use pytest with coverage:
-
-```bash
+# Run all tests
 python -m pytest
+
+# Run tests with verbose output
+python -m pytest -v
+
+# Run a specific test module
+python -m pytest src/tools/tests/test_auth_tools.py
+
+# Run tests with coverage report
+python -m pytest --cov=src
+
+# Run tests matching a specific pattern
+python -m pytest -k "search"
 ```
 
-View the HTML coverage report in the `htmlcov` directory.
-
-### Test Features
-
-The test suite verifies all major functionalities:
-
-1. **Authentication** - Tests that OAuth credentials are valid and properly configured
-2. **Space Operations** - Lists spaces and tests space member management
-3. **Message Operations** - Tests sending, updating, replying to, and deleting messages
-4. **Search Functionality** - Tests the search capabilities including regex and semantic search
-5. **User Information** - Verifies user profile data retrieval
-6. **Advanced Features** - Tests conversation summaries and participant analysis
-
-### Testing Configuration
-
-For better test organization, create a file called `test_config.py` with your test space ID:
-
-```python
-# test_config.py
-TEST_SPACE_ID = "spaces/YOUR_TEST_SPACE_ID"
-```
-
-This file is git-ignored and allows you to run tests without hardcoding space IDs.
-
-### CI/CD Integration
-
-The repository includes CircleCI configuration for automated testing. To use it:
-
-1. Configure CircleCI with your repository
-2. Set up the following environment variables in CircleCI:
-   - `GOOGLE_CREDENTIALS` - Base64-encoded credentials.json content
-   - `GOOGLE_TOKEN` - Base64-encoded token.json content
-   - `TEST_SPACE_ID` - Your test space ID for running integration tests
-
-### Project Structure
-
-- **google_chat.py**: Core library with all API functions
-- **server.py**: MCP server and authentication web server
-- **server_auth.py**: Authentication helpers
-- **test_google_chat_tools.py**: Test suite for all functionality
-- **TOKEN_MANAGEMENT.md**: Detailed guide to token management
-
-## Development
-
-### Running Tests
-
-Run the full test suite:
-
-```bash
-python run_tests.py
-```
-
-Or use pytest with coverage:
-
-```bash
-python -m pytest
-```
-
-View the HTML coverage report in the `htmlcov` directory.
-
-### Project Structure
-
-- **google_chat.py**: Core library with all API functions
-- **server.py**: MCP server and authentication web server
-- **server_auth.py**: Authentication helpers
-- **refresh_token.py**: Utility script for refreshing tokens
-- **check_token.py**: Utility script for checking token status
-- **tests/**: Unit tests for all functionality
-- **TOKEN_MANAGEMENT.md**: Detailed guide to token management
-- **TESTING.md**: Information about testing setup and coverage
-
-## License
-
-MIT License
-
+> Note: The legacy `test_google_chat_tools.py` file now redirects to the modular test structure.

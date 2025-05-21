@@ -101,19 +101,30 @@ pip install -r requirements.txt
    - Under "Authorized JavaScript origins" add: `http://localhost:8000`
    - Under "Authorized redirect URIs" add: `http://localhost:8000/auth/callback`
    - Click "Create" and download the JSON file
-   - **Important**: You must rename the downloaded file to `credentials.json` and place it in the root directory of this project. The authentication process specifically looks for this filename and cannot proceed without it.
+   - **Important**: Rename the downloaded file to `credentials.json` and place it in one of these locations:
+     - Root directory of the project
+     - `src/providers/google_chat/` directory
+     - Any other location as long as you update the `CREDENTIALS_FILE` path in `constants.py`
    - This credentials.json file contains the client configuration that Google uses to verify your application's identity during the OAuth flow. Without it, authentication will fail.
    - Reference: [Google OAuth 2.0 Documentation](https://developers.google.com/identity/protocols/oauth2)
 
 3. **Authenticate with Google**:
    - Run the authentication server:
      ```bash
-     python server.py -local-auth
+     python -m src.server -local-auth
      ```
    - Visit http://localhost:8000/auth in your browser
    - Follow the OAuth flow to grant permissions
-   - After successful authentication, a `token.json` file will be generated in your project root directory
+   - After successful authentication, a `token.json` file will be generated in the default path (src/providers/google_chat/token.json)
    - This token will be used for all future API requests, and the MCP server will automatically refresh it when needed
+
+   > **Custom Token Path**: If you want to store the token in a custom location, use the `--token-path` parameter:
+   > ```bash
+   > python -m src.server -local-auth --token-path "/custom/path/to/token.json"
+   > ```
+   > Remember to use this exact same path in your MCP client configuration!
+   >
+   > The token path in your `mcp.json` file must always match where the token was actually generated during authentication.
 
 ### 3. Configure Your MCP Client
 
@@ -125,25 +136,84 @@ Add the Google Chat MCP server to your MCP client's configuration. For Cursor, e
     "command": "uv",
     "args": [
       "--directory",
-      "/path/to/google-chat-mcp-server",
+      "/path/to/google-chat-mcp-server-main",
       "run",
       "-m",
       "src.server",
       "--token-path",
-      "/path/to/google-chat-mcp-server/token.json"
+      "/path/to/google-chat-mcp-server-main/src/providers/google_chat/token.json"
     ]
   }
 }
 ```
 
-Replace `/path/to/google-chat-mcp-server` with the actual path to your repository.
+Replace `/path/to/google-chat-mcp-server-main` with the absolute path to your repository.
 
-**Important File Locations:**
-- `credentials.json`: Must be placed in the root directory of the project
-- `token.json`: Generated in the root directory after authentication, can be configured with `--token-path`
-- `search_config.yaml`: Located in the root directory, configures search behavior
+> **IMPORTANT**: You must ensure that the `--token-path` value in your MCP configuration matches exactly the path where your token will be stored during authentication. If these paths don't match, the server won't be able to find your authentication token.
 
-> **Note**: After completing this setup, you can close this project. The MCP client (e.g., Cursor) will automatically start and manage the server process when you use Google Chat MCP tools in your AI assistant. You don't need to manually start the server each time - the AI tool's MCP client will handle starting and stopping the server as needed. Once you've authenticated and configured everything, you can move on to other projects while still having access to all the Google Chat MCP functionality.
+**Important File Locations and Path Consistency:**
+- `credentials.json`: Can be placed anywhere on your system, with common locations being:
+  - The root directory of the project (traditional location)
+  - The `src/providers/google_chat/` directory
+  - Any custom location specified in `CREDENTIALS_FILE` in `constants.py`
+- `token.json`: Location is determined by the `--token-path` parameter during authentication (default is `src/providers/google_chat/token.json`)
+- `search_config.yaml`: Can be placed anywhere on your system, with common locations being:
+  - The root directory of the project (traditional location)
+  - The `src/providers/google_chat/utils/` directory
+  - Any custom location specified in `SEARCH_CONFIG_YAML_PATH` in `constants.py`
+
+**Path Configuration:**
+1. When you run the authentication server with `python -m src.server -local-auth`, it will store the token at the path specified by `--token-path` (or the default location if not specified)
+2. Your `mcp.json` configuration must use the **exact same token path** for the server to find your authentication token
+3. You have flexibility in where you store the files, but you must ensure the paths in `constants.py` and your MCP configuration remain consistent
+
+For example, if you authenticate with:
+```bash
+python -m src.server -local-auth --token-path "/custom/path/to/token.json"
+```
+
+Then your `mcp.json` must specify:
+```json
+"--token-path", "/custom/path/to/token.json"
+```
+
+**Directory Structure:**
+```
+google-chat-mcp-server-main/
+├── diagrams/                # SVG diagrams and source files
+├── docs/                    # Documentation files
+├── src/
+│   ├── providers/
+│   │   └── google_chat/     # Google Chat provider implementation
+│   │       ├── api/         # API client implementations
+│   │       ├── tools/       # MCP tool implementations
+│   │       ├── utils/       # Utility functions and helpers
+│   │       │   ├── constants.py       # Contains configurable file paths
+│   │       │   └── search_config.yaml # Search configuration (can be here)
+│   │       ├── credentials.json # OAuth client configuration (can be here)
+│   │       └── token.json   # Default OAuth token storage location
+│   ├── __init__.py
+│   ├── mcp_instance.py      # MCP instance configuration
+│   └── server.py            # Main server implementation
+```
+
+**Updating File Paths**:
+
+The file paths for credentials, token, and configuration files are defined in the constants file and can be modified to point to any location on your system:
+
+```python
+# File: src/providers/google_chat/utils/constants.py
+
+# Update these paths to match where you've placed your files
+DEFAULT_TOKEN_PATH = "/absolute/path/to/token.json"
+CREDENTIALS_FILE = "/absolute/path/to/credentials.json"
+SEARCH_CONFIG_YAML_PATH = "/absolute/path/to/search_config.yaml"
+```
+
+> **Important**: When updating these paths, always use absolute paths to avoid any resolution issues. Relative paths may not work correctly depending on how the server is started.
+>
+
+> **Note**: After completing this setup, you can close this project. The MCP client (e.g., Cursor) will automatically start and manage the server process when you use Google Chat MCP tools in your AI assistant.
 
 ## Architecture Diagrams
 
@@ -182,11 +252,9 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 # Run all tests with coverage report
 python -m pytest
 
-# Run specific test modules
-python -m pytest src/tools/tests/test_user_tools.py
 
 # Run tests with detailed coverage information
-python -m pytest src/tools/tests/ --cov=src.tools --cov-report=term-missing -v
+python -m pytest src/providers/google_chat/tools/tests/ --cov=src.tools --cov-report=term-missing -v
 ```
 
 ### Test Structure
@@ -195,8 +263,11 @@ The test structure is organized as follows:
 
 ```
 src/
-  tools/tests/           - Tests for MCP tools
-  google_chat/tests/     - Tests for core functionality
+  providers/
+    google_chat/
+      api/tests/       - Tests for API client functionality
+      tools/tests/     - Tests for MCP tools
+      utils/tests/     - Tests for utility functions
 ```
 
 Tests can be run directly using `pytest`:
@@ -209,13 +280,13 @@ python -m pytest
 python -m pytest -v
 
 # Run a specific test module
-python -m pytest src/tools/tests/test_auth_tools.py
+python -m pytest src/providers/google_chat/api/tests/test_auth.py
 
 # Run tests with coverage report
 python -m pytest --cov=src
 
-# Run tests matching a specific pattern
-python -m pytest -k "search"
+# Run tests with detailed coverage information
+python -m pytest src/providers/google_chat/tools/tests/ --cov=src.tools --cov-report=term-missing -v
 ```
 
 See `docs/TEST_IMPROVEMENTS.md` for detailed information about test coverage and future improvements.
@@ -399,3 +470,37 @@ Important notes on date filtering:
       - `thread_key` (string, optional): Thread to reply to
       - `cards_v2` (object, optional): Card content
   - Returns: Dictionary with results for each message
+
+## Search Functionality Improvements
+
+The search functionality in the Google Chat provider has been enhanced to provide better results across all topics:
+
+1. **Enhanced Semantic Search**:
+   - Lower base similarity threshold (0.30) for better recall
+   - Dynamic thresholding based on result distribution
+   - Special handling of edge cases
+   - Implements both absolute and relative similarity scoring
+
+2. **Smarter Hybrid Search**:
+   - Combines regex, exact, and semantic search results
+   - Multi-mode bonus for messages found by multiple methods
+   - Weighted scoring system with configurable weights
+   - Higher weight (1.8) for semantic matches
+
+3. **Advanced Fallback Strategy**:
+   - Multiple fallback levels when no results are found
+   - Automatic relaxation of similarity thresholds
+   - Fallback to partial word matching
+   - Progressive search broadening
+
+4. **Comprehensive Testing**:
+   - Unit and integration tests for all search modes
+   - Direct similarity measurement tools
+   - Performance profiling for search operations
+
+These improvements ensure better search results across all query types and domains. The search system now provides higher quality results by balancing precision and recall based on the search context.
+
+For custom search requirements, you can adjust the configuration in `search_config.yaml`. This file can be placed in either:
+- The root directory of the project
+- `src/providers/google_chat/utils/` directory
+- Any other location as long as you update the `SEARCH_CONFIG_YAML_PATH` in `constants.py`

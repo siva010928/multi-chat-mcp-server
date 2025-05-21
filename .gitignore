@@ -43,8 +43,8 @@ htmlcov/
 *.swo
 
 # Project specific
-token.json
-credentials.json
+src/providers/google_chat/token.json
+src/providers/google_chat/credentials.json
 .specstory/
 
 # Mac OS
@@ -52,3 +52,7 @@ credentials.json
 
 .cursorindexingignore
 *.mdc
+
+*.txt
+**/sample_attachment.txt
+sample_attachment*.txt

@@ -504,3 +504,78 @@ For custom search requirements, you can adjust the configuration in `search_conf
 - The root directory of the project
 - `src/providers/google_chat/utils/` directory
 - Any other location as long as you update the `SEARCH_CONFIG_YAML_PATH` in `constants.py`
+
+## Cursor Rule for Effective MCP Use
+
+To maximize the effectiveness of the Google Chat MCP integration with Cursor, consider adding the following rule to your Cursor custom instructions. This rule automates team communications and information retrieval through Google Chat:
+
+```
+Last Updated: May 22, 2025
+
+If I say anything that even remotely, semantically or syntactically, implies communicating with my team—including, but not limited to, any of these phrases or their variants:
+
+"Catch me up with [topic/updates/etc.]" (this always triggers a search; start with semantic mode, then regex if semantic yields nothing),
+"Update my team,"
+"Send this to the team,"
+"Let the team know,"
+"Share with my team,"
+"Message the team,"
+"Convey this to them,"
+"Team should know this,"
+"Pass this along to the team,"
+"Notify the team,"
+"Inform them,"
+"Tell everyone,"
+"Broadcast this,"
+"Share this update with everyone,"
+"Remind them about [something],"
+"Let the group know,"
+"Team needs to hear this,"
+"Push this to the group chat,"
+"Make sure the team is aware,"
+"Send an alert to the team,"
+"Relay this to the team,"
+"Tell the group,"
+"Forward this to the team,"
+
+and any other phrasing with similar intent—you must interpret this as a command to send a message via the send_message tool in the Google Chat MCP agent.
+
+You must always use the following parameters:
+
+space_name: spaces/AAQAXL5fJxI
+
+text: [the content you construct or extract from my message]
+
+Never use any other communication channel (do not use email, Slack, SMS, etc.).
+Never switch to another Google Chat space unless I specify it explicitly by name or space ID.
+Never skip this action—ever—when a trigger phrase or its equivalent meaning is present.
+
+If you are at all unsure what to send due to missing context, unclear phrasing, or abstraction:
+
+Draft a sample message.
+
+Show it to me: "Here's what I'll send to the team. Approve?"
+
+Wait for my explicit confirmation before sending.
+
+If I give approval, send the message via the tool.
+After a message is approved and sent, do not resend or re-prompt the same update unless the content or context changes. Track the last sent message (e.g., via message hash) to prevent redundancy.
+
+When you are told to "catch me up with" or anything suggesting a search, always start with "semantic" mode to search for relevant messages or updates. If you do not get any results, immediately retry using "regex" mode. If you get results on the first attempt, summarize and provide all resulting messages—do not omit, compress, or skip any details unless I specifically request it. Do not relate findings to any local or prior context; simply report the full results. If results are sufficient from the first attempt, do not call the tool again with different arguments. Do not skip, delay, or overly summarize the search results—show them fully.
+
+Example behaviors:
+If I say, "Let the team know we're launching tomorrow," you must call send_message(space_name="spaces/AAQAXL5fJxI", text="We're launching tomorrow.") immediately.
+If I say, "Share this update with everyone," after showing a summary, you must ask, "Should I send this summary to the team?" and wait for my approval before sending.
+If I say, "Remind them about the deadline," generate a draft like "Reminder: the deadline is approaching," show it to me for approval, and only send after I approve.
+If I say, "Message the team: all hands meeting at 3pm," send "All hands meeting at 3pm" with no need for prompting if the intent and content are clear.
+If I say, "Catch me up with project X updates," perform the search (semantic then regex if needed), provide all messages found, and do not rerun the tool if you get enough results at first.
+
+Never use email, Slack, or any other channel for these communications.
+Never switch to another space unless specified.
+Never skip, delay, or summarize away a requested message to the team.
+Never act on unclear prompts without explicit approval.
+```
+
+> **Note**: Replace `spaces/AAQAXL5fJxI` with your team's actual Google Chat space ID. You can find this by using the `mcp_google_chat_get_chat_spaces_tool` to list your available spaces.
+
+Adding this rule to your Cursor custom instructions enables natural language commands for team communication and information retrieval, making the Google Chat MCP integration more powerful and intuitive to use.

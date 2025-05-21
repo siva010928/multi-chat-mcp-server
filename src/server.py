@@ -2,10 +2,10 @@ import argparse
 import asyncio
 import logging
 
-from server_auth import run_auth_server
-from src.google_chat.auth import set_token_path
-from src.google_chat.constants import DEFAULT_CALLBACK_URL
+from src.providers.google_chat.server_auth import run_auth_server
 from src.mcp_instance import mcp
+from src.providers.google_chat.api.auth import set_token_path
+from src.providers.google_chat.utils.constants import DEFAULT_CALLBACK_URL, DEFAULT_TOKEN_PATH
 
 # Import tool modules - this ensures the decorated functions are registered
 
@@ -19,7 +19,7 @@ def main():
     parser.add_argument('-local-auth', action='store_true', help='Run the local authentication server')
     parser.add_argument('--host', default='localhost', help='Host to bind the server to (default: localhost)')
     parser.add_argument('--port', type=int, default=8000, help='Port to run the server on (default: 8000)')
-    parser.add_argument('--token-path', default='token.json', help='Path to store OAuth token (default: token.json)')
+    parser.add_argument('--token-path', default=DEFAULT_TOKEN_PATH, help='Path to store OAuth token (default: token.json)')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging')
 
     args = parser.parse_args()

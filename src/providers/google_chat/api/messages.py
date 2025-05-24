@@ -40,21 +40,21 @@ async def list_space_messages(space_name: str,
     # Validate parameters
     if days_window <= 0:
         raise ValueError("days_window must be positive")
-    
+
     if offset < 0:
         raise ValueError("offset cannot be negative")
 
     # Calculate date range
     today = datetime.now(timezone.utc)
-    
+
     # Calculate end date by subtracting offset days from today
     end_date = today - timedelta(days=offset)
     end_date_str = end_date.strftime('%Y-%m-%d')
-    
+
     # Calculate start date by going back days_window days from the end date
     start_date = end_date - timedelta(days=days_window)
     start_date_str = start_date.strftime('%Y-%m-%d')
-    
+
     logger.info(f"Using calculated date range: {start_date_str} to {end_date_str} " +
                 f"(window: {days_window} days, offset: {offset} days)")
 
@@ -80,7 +80,7 @@ async def list_space_messages(space_name: str,
             raise ValueError(f"Invalid date format: {str(e)}")
 
         # Prepare request parameters
-        request_params = {'parent': space_name, 'pageSize': min(page_size, 1000)}  # Enforce API limit
+        request_params = {'parent': space_name, 'pageSize': page_size}  # No longer enforcing 1000 message limit
 
         # Add optional parameters if provided
         if filter_str:
@@ -295,7 +295,7 @@ async def batch_send_messages(messages: List[Dict]) -> Dict:
     except Exception as e:
         raise Exception(f"Failed to batch send messages: {str(e)}")
 
-async def reply_to_thread(space_name: str, thread_key: str, text: str, cards_v2=None) -> Dict:
+async def reply_to_thread(space_name: str, thread_key: str, text: str, cards_v2=None, file_path=None) -> Dict:
     """Replies to a thread in a Google Chat space.
 
     Args:
@@ -303,6 +303,10 @@ async def reply_to_thread(space_name: str, thread_key: str, text: str, cards_v2=
         thread_key: The thread key to reply to. Can be a simple ID, a threadKey, or a full thread name
         text: Text content of the reply
         cards_v2: Optional card content for the reply (list of card objects)
+        file_path: Optional path to a file to attach to the reply. If provided, the file will be
+                  read and its contents included in the message. For text files, the content will
+                  be included directly. For binary files, a message indicating it's a binary file
+                  will be included.
 
     Returns:
         The created message object
@@ -316,6 +320,38 @@ async def reply_to_thread(space_name: str, thread_key: str, text: str, cards_v2=
             raise Exception("No valid credentials found. Please authenticate first.")
 
         service = build('chat', 'v1', credentials=creds)
+
+        # If a file path is provided, read the file and include its contents in the message
+        if file_path:
+            from pathlib import Path
+
+            # Validate file exists
+            file_path = Path(file_path)
+            if not file_path.exists():
+                raise FileNotFoundError(f"File not found: {file_path}")
+
+            # Read file contents (limit to first 5000 characters)
+            try:
+                with open(file_path, 'r') as f:
+                    file_contents = f.read(5000)
+                    if len(file_contents) >= 5000:
+                        file_contents += "\n... [content truncated] ..."
+            except UnicodeDecodeError:
+                # Handle binary files
+                file_contents = "[Binary file content not shown]"
+
+            # Build message text
+            full_message = ""
+            if text:
+                full_message += f"{text}\n\n"
+
+            full_message += f"📄 *File: {file_path.name}*\n"
+            full_message += "```\n"
+            full_message += file_contents
+            full_message += "\n```"
+
+            # Use the full message as the text
+            text = full_message
 
         # Build message body
         message_body = {

@@ -14,9 +14,9 @@ async def search_messages_tool(query: str,
                           spaces: list[str] = None,
                           max_results: int = 50,
                           include_sender_info: bool = False,
-                          start_date: str = None,
-                          end_date: str = None,
-                          filter_str: str = None) -> dict:
+                          filter_str: str = None,
+                          days_window: int = 3,
+                          offset: int = 0) -> dict:
     """Search for messages across all spaces or specified spaces.
 
     This tool performs advanced search for messages in Google Chat spaces using various search strategies.
@@ -34,6 +34,13 @@ async def search_messages_tool(query: str,
                 - "(?i)cicd|ci[ /\\-_]?cd" → Matches any variation of CI/CD
                 - "\\bpipeline\\b" → Matches "pipeline" as a whole word only
                 - "docker.*storage|storage.*docker" → Finds messages with both terms in any order
+                - "term1|term2|term3|term4|term5" → More effective than space-separated terms,
+                  as it will match any message containing at least one of these terms
+                - "error.{0,20}\\b(500|503|404)\\b" → Finds error messages with specific HTTP codes
+              - Advanced patterns:
+                - "\\bimportant\\b.*\\bdeadline" → Finds "important" followed by "deadline"
+                - "release.{0,50}version.{0,10}[0-9\\.]+" → Finds version numbers in release discussions
+                - "(?i)(blocker|urgent|critical).{0,30}(fix|resolve|solve)" → Priority issues being fixed
 
             ▶ For "semantic" search:
               - Natural language queries that match by meaning, not exact words
@@ -46,13 +53,13 @@ async def search_messages_tool(query: str,
                   * "The automated tests in our CI system are slow"
                   * "I'm setting up the deployment pipeline"
                   (even when they don't contain "continuous integration" explicitly)
-                
+
                 - "performance issues" → Will find messages discussing:
                   * "The system is very slow when loading large files"
                   * "Users are experiencing lag in the dashboard"
                   * "We need to optimize the database queries"
                   * "Response times have degraded since the last release"
-                  
+
                 - "quarterly financial review" → Will match messages like:
                   * "Here's the Q1 financial summary we discussed"
                   * "The budget numbers for this quarter look good"
@@ -64,14 +71,14 @@ async def search_messages_tool(query: str,
                 - "budget" → Only finds exact occurrences of "budget" (case-sensitive)
 
             SEARCH MODE COMPARISON AND BEST PRACTICES:
-            
+
             1. REGEX SEARCH (Default)
                Advantages:
                - Fastest search method
                - Precise pattern matching with wildcards and special characters
                - Good for finding specific text patterns or formats
                Best for: Technical terms, identifiers, predictable text patterns
-            
+
             2. SEMANTIC SEARCH
                Advantages:
                - Finds conceptually related content without exact word matches
@@ -79,14 +86,14 @@ async def search_messages_tool(query: str,
                - Flexible date filtering with automatic fallback
                - Best at understanding the meaning behind your query
                Best for: Concept-based searches, troubleshooting, finding related information
-            
+
             3. EXACT SEARCH
                Advantages:
                - Simple substring matching
                - No special characters to escape
                - Most straightforward to use
                Best for: Precise text snippets when you know exactly what to find
-            
+
             WHEN TO USE EACH MODE:
             - Use REGEX for: Technical terms with specific formats (CI/CD, v1.2.3)
             - Use SEMANTIC for: Concept-based searches, troubleshooting, finding related content
@@ -97,86 +104,97 @@ async def search_messages_tool(query: str,
                    - "semantic": Meaning-based search using embeddings
                    - "exact": Simple substring search
                    - "hybrid": Combines multiple search approaches
-                   
+
                    If not specified, "regex" is used as the default mode.
 
         spaces: Optional list of space names to search in. Format: ["spaces/{space_id}", ...]
               If None, searches across all accessible spaces.
-        
+
         max_results: Maximum number of results to return (default: 50).
-        
+
         include_sender_info: When True, adds email, display name, and profile photo
                           information for message senders (default: False).
 
-        start_date: Optional start date in YYYY-MM-DD format (e.g., "2024-05-01").
-                    Used to filter messages by creation date. When provided:
-                    
-                    - All messages AFTER this date will be included
-                    - For any search_mode (regex, semantic, etc.)
-                    - Creates a filter like: 'createTime > "2024-05-01T00:00:00Z"'
-                    
-                    IMPORTANT DATE FILTERING NOTES:
-                    1. The Google Chat API uses ">" (greater than) for date filtering,
-                       NOT ">=" (greater than or equal to), which means messages created
-                       exactly at midnight on the start date might be excluded.
-                    
-                    2. When using start_date alone (without end_date), 
-                       the system returns ALL messages AFTER the start date.
-                    
-                    3. For semantic search, date filters are treated as PREFERENCES rather
-                       than strict requirements. This special behavior is UNIQUE to semantic search
-                       and works as follows:
-                       
-                       a) System FIRST tries to find messages matching both:
-                          - Semantically relevant to your query
-                          - Within the specified date range
-                       
-                       b) If NO messages match both criteria, system does automatic fallback:
-                          - Date filter is completely ignored
-                          - All messages are searched for semantic relevance
-                          - Best semantic matches are returned regardless of date
-                          
-                       c) This happens automatically and transparently to the user
-                       
-                       STEP-BY-STEP EXAMPLE:
-                       User searches for "project updates" with:
-                         - search_mode="semantic"
-                         - start_date="2024-05-18"
-                         
-                       Available messages:
-                         - May 15: "Here's the current status of Project X: 75% complete"
-                         - May 20: "Team lunch scheduled for Friday"
-                         
-                       Search process:
-                         1. Look for semantically relevant messages from May 18 onward
-                            → Found nothing (May 20 message is in range but not relevant)
-                         2. Fallback: Ignore date filter and search all messages
-                            → Return the May 15 message because it's semantically relevant
-                            
-                       This ensures users always get useful results, even when strict
-                       date filtering would return nothing.
-                       
-                    4. For regex and exact searches, date filters are applied strictly.
-                       These modes will return NO results if no messages match both the
-                       query and the date filter.
-                       
-                    5. For future dates (like "2025-05-01"), searches will return empty
-                       results until messages exist for that timeframe.
-        
-        end_date: Optional end date in YYYY-MM-DD format (e.g., "2024-05-05").
-                  Used to filter messages by creation date. When provided
-                  with start_date, creates a date range filter.
-                  
-                  - All messages BEFORE this date will be included
-                  - Creates a filter like: 'createTime < "2024-05-05T23:59:59Z"'
-                  
-                  When both start_date and end_date are provided, only messages within
-                  that time range will be returned (for regex and exact searches).
-                  For semantic search, messages outside this range might be returned
-                  if no messages within the range match semantically.
-
         filter_str: Optional additional filter string for the API in Google Chat API filter format.
                    See API reference for advanced filtering options.
+
+        days_window: Number of days to look back for messages (default: 3).
+                   This parameter controls the date range for message retrieval.
+                   For example, if days_window=3, messages from the last 3 days will be retrieved.
+                   If no results are found in the initial date range, the system will 
+                   automatically try with an expanded date range (double the window size)
+                   before falling back to other strategies.
+                   
+                   INCREMENTAL SEARCH STRATEGY:
+                   To effectively search through historical messages in chunks:
+                   1. Start with small window (days_window=3, offset=0) for recent messages
+                   2. If needed, move backward in time by increasing offset while keeping window consistent:
+                      - First search: days_window=3, offset=0 (0-3 days ago)
+                      - Second search: days_window=3, offset=3 (3-6 days ago)
+                      - Third search: days_window=3, offset=6 (6-9 days ago)
+                   3. For broader searches, increase the window size:
+                      - days_window=7, offset=0 (0-7 days ago)
+                      - days_window=7, offset=7 (7-14 days ago)
+                      - days_window=7, offset=14 (14-21 days ago)
+                   4. For targeted searches of specific time periods:
+                      - days_window=1, offset=30 (messages from exactly 30 days ago)
+
+        offset: Number of days to offset the end date from today (default: 0).
+               For example, if offset=3, the end date will be 3 days before today,
+               and with days_window=3, messages from 6 to 3 days ago will be retrieved.
+               
+               OFFSET EXPLAINED:
+               - offset=0: End date is today (search includes most recent messages)
+               - offset=7: End date is 7 days ago (search excludes the last 7 days of messages)
+               - Combining with days_window creates a sliding window through message history
+               - Useful for methodical searching without duplicate results
+
+                   IMPORTANT DATE FILTERING NOTES:
+                   1. Messages are ALWAYS returned in descending order by creation time 
+                      (newest first), matching the natural way users read chat history.
+
+                   2. The date range is calculated as follows:
+                      - end_date = current_date - offset
+                      - start_date = end_date - days_window
+
+                   3. For semantic search, date filters are treated as PREFERENCES rather
+                      than strict requirements. This special behavior is UNIQUE to semantic search
+                      and works as follows:
+
+                      a) System FIRST tries to find messages matching both:
+                         - Semantically relevant to your query
+                         - Within the specified date range
+
+                      b) If NO messages match both criteria, system does automatic fallback:
+                         - First tries with expanded date range (double the window size)
+                         - If still no results, tries with a much larger window (10x)
+                         - Best semantic matches are returned regardless of date
+
+                      c) This happens automatically and transparently to the user
+
+                      STEP-BY-STEP EXAMPLE:
+                      User searches for "project updates" with:
+                        - search_mode="semantic"
+                        - days_window=3
+                        - offset=0
+
+                      Available messages:
+                        - 5 days ago: "Here's the current status of Project X: 75% complete"
+                        - 2 days ago: "Team lunch scheduled for Friday"
+
+                      Search process:
+                        1. Look for semantically relevant messages from the last 3 days
+                           → Found nothing (2-day-old message is in range but not relevant)
+                        2. Try with expanded date range (6 days)
+                           → Found the 5-day-old message because it's semantically relevant
+                        3. If still nothing, would try with a much larger window (30 days)
+
+                      This ensures users always get useful results, even when strict
+                      date filtering would return nothing.
+
+                   4. For regex and exact searches, date filters are applied strictly.
+                      These modes will return NO results if no messages match both the
+                      query and the date filter.
 
     Returns:
         dictionary containing:
@@ -186,6 +204,7 @@ async def search_messages_tool(query: str,
         - space_info: information about the spaces that were searched
         - search_metadata: details about the search query and results
         - search_complete: boolean indicating whether the search is complete
+        - message_count: number of messages returned (integer)
 
     Note: For optimal results with semantic search, use descriptive natural language
     queries rather than short keywords.
@@ -194,7 +213,7 @@ async def search_messages_tool(query: str,
 
     1. Basic regex search in a specific space:
        ```python
-       search_messages(
+       search_messages_tool(
            query="meeting",
            spaces=["spaces/AAQAXL5fJxI"]
        )
@@ -202,7 +221,7 @@ async def search_messages_tool(query: str,
 
     2. Find messages about continuous integration using semantic search:
        ```python
-       search_messages(
+       search_messages_tool(
            query="continuous integration pipeline",
            search_mode="semantic",
            spaces=["spaces/AAQAXL5fJxI"],
@@ -210,142 +229,156 @@ async def search_messages_tool(query: str,
        )
        ```
 
-    3. Find messages containing "budget" from the month of May 2024:
+    3. Find messages containing "budget" from the last 30 days:
        ```python
-       search_messages(
+       search_messages_tool(
            query="budget",
            search_mode="regex",
-           start_date="2024-05-01",
-           end_date="2024-05-31",
+           days_window=30,
            spaces=["spaces/AAQAXL5fJxI"]
        )
        ```
-       
-    4. Find all messages after a specific date:
+
+    4. Find all messages from 7-14 days ago:
        ```python
-       search_messages(
+       search_messages_tool(
            query=".*",  # Match anything (regex mode)
-           start_date="2024-05-18",  # All messages after this date
+           days_window=7,
+           offset=7,  # Start from 7 days ago
            spaces=["spaces/AAQAXL5fJxI"]
        )
        ```
-       
-           5. Semantic search with flexible date filtering:
+
+    5. Semantic search with flexible date filtering:
        ```python
-       search_messages(
+       search_messages_tool(
            query="quarterly report discussion",
            search_mode="semantic",
-           start_date="2024-05-13",  # Prefer messages after this date
+           days_window=7  # Look back 7 days initially
+       )
+       ```
+       This example will try to find messages about quarterly reports from the last 7 days,
+       but if none exist in that timeframe, it will try with expanded date ranges rather
+       than returning no results.
+
+    6. Sequential searches without message duplication:
+       ```python
+       # First search - last 3 days
+       results_first = search_messages_tool(
+           query="project updates",
+           days_window=3,
+           offset=0
+       )
+       
+       # Second search - previous 3 days (days 3-6)
+       results_second = search_messages_tool(
+           query="project updates",
+           days_window=3,
+           offset=3
+       )
+       ```
+
+    7. Search with regex OR patterns for more effective term matching:
+       ```python
+       search_messages_tool(
+           query="issue|bug|problem|error|failure",
+           search_mode="regex",
+           days_window=14,  # Last two weeks
            spaces=["spaces/AAQAXL5fJxI"]
        )
        ```
-       This example will try to find messages about quarterly reports after May 13,
-       but if none exist in that timeframe, it will return semantically relevant
-       messages from before May 13 rather than returning no results.
-       
-       IMPORTANT: How semantic search works with date filters (unlike regex/exact):
-       
-       ```
-       Example Scenario:
-       
-       Timeline:     May 10               May 13               May 15               May 20
-                       |                    |                    |                    |
-       Messages:  [Q1 Report]               |                [Team Meeting]     [Project Update]
-                       |                    |                    |                    |
-                       |<---Filter excludes-|---------Filter includes---------------->|
-                       |                    |                    |                    |
-       ```
-       
-       If you search for "quarterly financial results" with start_date="2024-05-13":
-       
-       - First attempt: Look for semantically matching messages after May 13
-         - Found: None (the only relevant message is from May 10)
-       
-       - Fallback behavior: The system will IGNORE the date filter completely
-         - Will return: [Q1 Report] from May 10 because it's semantically relevant
-       
-       - Irrelevant messages like [Team Meeting] and [Project Update] won't be returned
-         even though they're within the date range, because they're not semantically relevant
-       
-       This prioritizes finding RELEVANT content over strict date adherence.
-    
-           6. Advanced regex search with word boundaries:
+       This pattern will find messages containing any of these related terms, which is 
+       more effective than using space-separated terms that would require all terms to match.
+
+    8. Incremental time-based searching pattern:
        ```python
-       search_messages(
-           query="\\bplan\\b.*\\bmeeting\\b",  # Find messages with words "plan" and "meeting"
+       # Start with recent messages (last 3 days)
+       recent_results = search_messages_tool(
+           query="deployment issues",
+           days_window=3,
+           offset=0
+       )
+       
+       # If not found, check next time chunk (3-6 days ago)
+       if len(recent_results.get("messages", [])) == 0:
+           older_results = search_messages_tool(
+               query="deployment issues",
+               days_window=3,
+               offset=3
+           )
+       
+       # Continue searching further back if needed (6-9 days ago)
+       if len(older_results.get("messages", [])) == 0:
+           oldest_results = search_messages_tool(
+               query="deployment issues",
+               days_window=3,
+               offset=6
+           )
+       ```
+       This pattern allows methodically searching back in time without missing messages.
+       
+    9. Combining regex searches with word boundaries:
+       ```python
+       search_messages_tool(
+           query=r"\berror\b.{0,50}\bfailed\b",
            search_mode="regex",
-           start_date="2024-06-01",
-           end_date="2024-06-30"
+           days_window=7
        )
        ```
-       This will strictly find only messages with both "plan" and "meeting" as whole words,
-       created in June 2024, and will return no results if no messages match both criteria.
+       This will find messages where "error" and "failed" appear within 50 characters of each other,
+       but only when they're complete words (not parts of other words).
        
-       7. Real-world semantic search for troubleshooting:
-       ```python
-       search_messages(
-           query="users experiencing slow performance on the application dashboard",
-           search_mode="semantic",
-           start_date="2024-05-01"  # Try to find recent issues first
-       )
-       ```
-       This detailed query could find messages like:
-       - "We've received reports of dashboard timeouts"
-       - "The visualization widgets are taking forever to load"
-       - "Database queries for the admin panel are inefficient"
-       - "Users are complaining about lag when viewing reports"
-       
-       Even if these messages are from April (before the start_date), they'll be
-       returned if no relevant messages exist after May 1st. This makes semantic
-       search extremely powerful for finding information when you don't know the 
-       exact wording or timing of messages.
-    """
-    logger.info(f"Searching for messages: query='{query}', mode={search_mode}")
-    
-    try:
-        # Normalize and prepare the query
-        query = query.strip()
-        if not query:
-            logger.error("Empty query received")
-            return {
-                'messages': [],
-                'search_metadata': {'error': 'Empty query'},
-                'search_complete': False
-            }
-            
-        # Validate mode
-        valid_modes = ["semantic", "regex", "exact", "hybrid", None]
-        if search_mode not in valid_modes:
-            logger.warning(f"Invalid search mode '{search_mode}', using default")
-            search_mode = None
+    10. Finding messages with exact phrases that might have contraction variants:
+        ```python
+        search_messages_tool(
+            query="don't understand|didn't understand|do not understand|did not understand",
+            search_mode="regex"
+        )
+        ```
+        This handles different ways people might phrase the same concept with contractions.
         
-        logger.info(f"Starting advanced search with: query='{query}', mode={search_mode}, spaces={spaces}")
-        
-        results = await search_messages(
-            query=query,
-            search_mode=search_mode,
-            spaces=spaces,
-            max_results=max_results,
-            include_sender_info=include_sender_info,
-            start_date=start_date,
-            end_date=end_date,
-            filter_str=filter_str
+    11. Comparing OR operator (|) vs space-separated terms:
+        ```python
+        # More effective: Using the OR operator to match any of these terms
+        search_messages_tool(
+            query="report|update|status|progress",
+            search_mode="regex"
         )
         
-        logger.info(f"Search complete, found {len(results.get('messages', []))} messages")
-        return results
-    except Exception as e:
-        logger.error(f"Error in search_messages_tool: {str(e)}", exc_info=True)
-        return {
-            'messages': [],
-            'error': f"Search failed: {str(e)}",
-            'search_complete': False
-        }
+        # Less effective: This would try to match all terms in a single message
+        search_messages_tool(
+            query="report update status progress",
+            search_mode="regex"
+        )
+        ```
+        The first query will find any message containing at least one of these terms,
+        while the second would only match messages containing all of these terms together.
+    """
+    logger.info(f"Searching for messages: query='{query}', mode={search_mode}")
+    logger.info(f"Starting advanced search with: query='{query}', mode={search_mode}, spaces={spaces}")
+
+    # Search messages across spaces
+    result = await search_messages(
+        query,
+        search_mode,
+        spaces,
+        max_results,
+        include_sender_info,
+        filter_str,
+        days_window,
+        offset
+    )
+    
+    # Add message count if not already present
+    if "message_count" not in result:
+        result["message_count"] = len(result.get("messages", []))
+
+    return result
 
 
 @mcp.tool()
 async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_sender_info: bool = True,
-                          page_size: int = 50, page_token: str = None) -> dict:
+                          page_size: int = 50, page_token: str = None, offset: int = 0) -> dict:
     """Get messages that mention the authenticated user from all spaces or a specific space.
 
     Searches for messages where the authenticated user is mentioned (by name or @mention)
@@ -362,16 +395,50 @@ async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_send
     Args:
         days: Number of days to look back for mentions (default: 7).
               Specifies the time period to search within, from now back this many days.
+              
+              USAGE STRATEGY:
+              - For recent mentions: days=1 or days=3
+              - For weekly review: days=7
+              - For monthly review: days=30
+              
+              PERFORMANCE NOTE: Lower values (fewer days) result in faster searches.
+              
         space_id: Optional space ID to check for mentions in a specific space.
                  If provided, searches only this space. If null (default), searches all accessible spaces.
                  Can be either a full resource name (e.g., 'spaces/AAQAtjsc9v4') or just the ID portion.
+                 
+                 USAGE STRATEGY:
+                 - For targeted searches, provide specific space_id
+                 - For broad searches across all conversations, leave as null
+                 - Searching a specific space is significantly faster than searching all spaces
+              
         include_sender_info: Whether to include detailed sender information in the returned messages.
                             When true, each message will include a sender_info object with details
                             like email, display_name, and profile_photo. (default: True)
+                            
+                            Set to False if you only need message content and not sender details.
+                            
         page_size: Maximum number of messages to return per space (default: 50)
                   Only applies when space_id is provided; otherwise, all matching mentions are returned.
+                  
+                  NOTE: Increasing this value may impact performance but ensures more comprehensive results.
+                  
         page_token: Optional page token for pagination (only applicable when space_id is provided)
                    Use the nextPageToken from a previous response to get the next page of results.
+                   
+                   This allows retrieving messages beyond the initial page_size limit.
+                   
+        offset: Number of days to offset the end date from today (default: 0).
+               For example, if offset=3, the search will exclude mentions from the last 3 days.
+               
+               USAGE STRATEGY:
+               - For current mentions: offset=0 (default)
+               - To exclude recent mentions: offset=3 (excludes last 3 days)
+               - To check older time periods: combine with days parameter
+                 - Last week, excluding today: offset=1, days=7
+                 - Previous week only: offset=7, days=7
+               
+               This parameter helps you perform non-overlapping sequential searches.
 
     Returns:
         Dictionary containing:
@@ -385,6 +452,62 @@ async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_send
           - Other standard message properties
         - nextPageToken: Token for retrieving the next page of results, or null if no more results
                         (Only present when searching with a specific space_id)
-    """
+        - message_count: Number of messages returned (integer)
 
-    return await get_my_mentions(days, space_id, include_sender_info, page_size, page_token)
+    Examples:
+    
+    1. Basic usage - get all mentions from the past week:
+       ```python
+       get_my_mentions_tool()
+       ```
+       
+    2. Check for recent mentions (last 24 hours):
+       ```python
+       get_my_mentions_tool(days=1)
+       ```
+       
+    3. Check for mentions in a specific space:
+       ```python
+       get_my_mentions_tool(
+           space_id="spaces/AAQAtjsc9v4",
+           days=3
+       )
+       ```
+       
+    4. Check for mentions from previous week (not including current week):
+       ```python
+       get_my_mentions_tool(
+           offset=7,  # Skip the last 7 days
+           days=7     # Look at the 7 days before that
+       )
+       ```
+       
+    5. Sequential non-overlapping searches for methodical review:
+       ```python
+       # First check last 3 days
+       recent_mentions = get_my_mentions_tool(days=3, offset=0)
+       
+       # Then check days 4-7
+       older_mentions = get_my_mentions_tool(days=4, offset=3)
+       
+       # Then check days 8-14
+       oldest_mentions = get_my_mentions_tool(days=7, offset=7)
+       ```
+    """
+    logger.info(f"Finding mentions in the last {days} days (offset: {offset} days)")
+    
+    # Get mentions from all spaces or single space
+    result = await get_my_mentions(
+        days=days,
+        space_id=space_id,
+        include_sender_info=include_sender_info,
+        page_size=page_size,
+        page_token=page_token,
+        offset=offset
+    )
+    
+    # Add message count if not already present
+    if "message_count" not in result:
+        result["message_count"] = len(result.get("messages", []))
+
+    return result

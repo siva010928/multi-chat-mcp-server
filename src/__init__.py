@@ -1,10 +1,8 @@
-"""Google Chat MCP Server"""
+"""Multi-Provider MCP Server"""
 
-# Import MCP instance for other modules to use
-from src.mcp_instance import mcp
+# Note: We no longer import MCP instance here as it's now provider-specific
+# and loaded dynamically by the server.py script.
 
 # Import tool modules to register them
-import src.providers.google_chat.tools.message_tools  # noqa
-import src.providers.google_chat.tools.space_tools  # noqa
-import src.providers.google_chat.tools.search_tools  # noqa
-import src.providers.google_chat.tools.user_tools  # noqa
+# These will be loaded dynamically by the provider_loader module
+# when the server starts with a specific provider.

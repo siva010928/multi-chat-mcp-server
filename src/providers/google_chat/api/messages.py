@@ -1,5 +1,6 @@
 import logging
 from typing import List, Dict, Optional
+from datetime import datetime, timezone, timedelta
 
 from googleapiclient.discovery import build
 
@@ -11,52 +12,72 @@ logger = logging.getLogger("messages")
 
 
 async def list_space_messages(space_name: str,
-                              start_date: Optional[str] = None,
-                              end_date: Optional[str] = None,
                               include_sender_info: bool = False,
                               page_size: int = 25,
                               page_token: Optional[str] = None,
                               filter_str: Optional[str] = None,
                               order_by: Optional[str] = None,
-                              show_deleted: bool = False) -> Dict:
+                              show_deleted: bool = False,
+                              days_window: int = 3,
+                              offset: int = 0) -> Dict:
     """Lists messages from a specific Google Chat space with optional time filtering.
 
     Args:
         space_name: The name/identifier of the space to fetch messages from
-        start_date: Optional start date in YYYY-MM-DD format for filtering messages
-        end_date: Optional end date in YYYY-MM-DD format for filtering messages
-        include_sender_info: Whether to include detailed sender information
-        page_size: Maximum number of messages to return (default: 25, max: 1000)
-        page_token: Page token from a previous request for pagination
-        filter_str: Optional filter string in the format specified by Google Chat API
-        order_by: How messages are ordered, format: "<field> <direction>"
-        show_deleted: Whether to include deleted messages in the results
+        include_sender_info: Whether to include sender info in the results (default: False)
+        page_size: Maximum number of messages to return (default: 25)
+        page_token: Optional page token for pagination
+        filter_str: Optional filter string in the Google Chat API format
+                   (see API reference for format)
+        order_by: How to order the messages, e.g., "createTime desc"
+        show_deleted: Whether to include deleted messages (default: False)
+        days_window: Number of days to look back (default: 3)
+        offset: Number of days to offset the end date from today (default: 0)
 
     Returns:
-        Dictionary containing messages and next page token
+        Dictionary containing messages and other metadata
     """
+    # Validate parameters
+    if days_window <= 0:
+        raise ValueError("days_window must be positive")
+    
+    if offset < 0:
+        raise ValueError("offset cannot be negative")
+
+    # Calculate date range
+    today = datetime.now(timezone.utc)
+    
+    # Calculate end date by subtracting offset days from today
+    end_date = today - timedelta(days=offset)
+    end_date_str = end_date.strftime('%Y-%m-%d')
+    
+    # Calculate start date by going back days_window days from the end date
+    start_date = end_date - timedelta(days=days_window)
+    start_date_str = start_date.strftime('%Y-%m-%d')
+    
+    logger.info(f"Using calculated date range: {start_date_str} to {end_date_str} " +
+                f"(window: {days_window} days, offset: {offset} days)")
+
     try:
         # Get credentials
         creds = get_credentials()
         service = build('chat', 'v1', credentials=creds)
 
-        # Create date filter if necessary
-        if start_date:
-            try:
-                # Format dates for the Google Chat API
+        # Create date filter
+        try:
+            # Format dates for the Google Chat API
+            date_filter = create_date_filter(start_date_str, end_date_str)
 
-                date_filter = create_date_filter(start_date, end_date)
+            logger.info(f"Using date filter: {date_filter}")
 
-                logger.info(f"Using date filter: {date_filter}")
-
-                # If we already have a filter, append the date filter
-                if filter_str:
-                    filter_str = f"{filter_str} AND ({date_filter})"
-                else:
-                    filter_str = date_filter
-            except ValueError as e:
-                logger.error(f"Invalid date format: {str(e)}")
-                raise ValueError(f"Invalid date format: {str(e)}")
+            # If we already have a filter, append the date filter
+            if filter_str:
+                filter_str = f"{filter_str} AND ({date_filter})"
+            else:
+                filter_str = date_filter
+        except ValueError as e:
+            logger.error(f"Invalid date format: {str(e)}")
+            raise ValueError(f"Invalid date format: {str(e)}")
 
         # Prepare request parameters
         request_params = {'parent': space_name, 'pageSize': min(page_size, 1000)}  # Enforce API limit
@@ -68,6 +89,9 @@ async def list_space_messages(space_name: str,
             request_params['pageToken'] = page_token
         if order_by:
             request_params['orderBy'] = order_by
+        else:
+            # Default to newest messages first if not specified
+            request_params['orderBy'] = 'createTime desc'
         if show_deleted:
             request_params['showDeleted'] = show_deleted
 
@@ -80,12 +104,12 @@ async def list_space_messages(space_name: str,
         next_page_token = response.get('nextPageToken')
 
         # Log timestamp details of retrieved messages for debugging date filter issues
-        if start_date and len(messages) > 0:
+        if start_date_str and len(messages) > 0:
             logger.info(f"Date filtering: First message createTime: {messages[0].get('createTime', 'unknown')}")
-            logger.info(f"Date filtering: Looking for messages on/after: {start_date}")
-            if end_date:
-                logger.info(f"Date filtering: Looking for messages on/before: {end_date}")
-        elif start_date and len(messages) == 0:
+            logger.info(f"Date filtering: Looking for messages on/after: {start_date_str}")
+            if end_date_str:
+                logger.info(f"Date filtering: Looking for messages on/before: {end_date_str}")
+        elif start_date_str and len(messages) == 0:
             logger.warning(f"Date filtering: No messages found for filter: {filter_str}")
             logger.warning(f"API response keys: {list(response.keys())}")
             logger.warning(f"API response snippet: {str(response)[:200]}...")
@@ -489,18 +513,22 @@ async def get_message_with_sender_info(message_name: str) -> Dict:
 
 
 async def list_messages_with_sender_info(space_name: str,
-                                         start_date: Optional[str] = None,
-                                         end_date: Optional[str] = None,
                                          limit: int = 10,
-                                         page_token: Optional[str] = None) -> Dict:
+                                         page_token: Optional[str] = None,
+                                         days_window: int = 3,
+                                         offset: int = 0) -> Dict:
     """Lists messages from a specific Google Chat space with sender information.
 
     Args:
         space_name: The name/identifier of the space to fetch messages from
-        start_date: Optional start date in YYYY-MM-DD format
-        end_date: Optional end date in YYYY-MM-DD format
         limit: Maximum number of messages to return (default: 10)
         page_token: Optional page token for pagination
+        days_window: Number of days to look back for messages (default: 3)
+                    This parameter controls the date range for message retrieval.
+                    For example, if days_window=3, messages from the last 3 days will be retrieved.
+        offset: Number of days to offset the end date from today (default: 0). 
+               For example, if offset=3, the end date will be 3 days before today,
+               and with days_window=3, messages from 6 to 3 days ago will be retrieved.
 
     Returns:
         Dictionary with 'messages' list (with sender info) and optional 'nextPageToken'
@@ -510,10 +538,11 @@ async def list_messages_with_sender_info(space_name: str,
     """
     result = await list_space_messages(
         space_name,
-        start_date,
-        end_date,
         include_sender_info=True,
         page_size=limit,
-        page_token=page_token
+        page_token=page_token,
+        order_by="createTime desc",  # Default to newest first
+        days_window=days_window,
+        offset=offset
     )
     return result

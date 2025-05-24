@@ -1,0 +1,26 @@
+providers:
+  google_chat:
+    name: Google Chat MCP
+    description: MCP server for Google Chat API integration
+    token_path: src/providers/google_chat/token.json
+    credentials_path: src/providers/google_chat/credentials.json
+    callback_url: http://localhost:8000/auth/callback
+    scopes:
+      - https://www.googleapis.com/auth/chat.spaces.readonly
+      - https://www.googleapis.com/auth/chat.messages
+      - https://www.googleapis.com/auth/chat.messages.create
+      - https://www.googleapis.com/auth/chat.messages.readonly
+      - https://www.googleapis.com/auth/chat.spaces
+      - https://www.googleapis.com/auth/userinfo.profile
+      - https://www.googleapis.com/auth/userinfo.email
+      - openid
+    search_config_path: src/providers/google_chat/utils/search_config.yaml
+
+  slack:
+    name: Slack MCP
+    description: MCP server for Slack
+    token_path: src/providers/slack/token.json
+    credentials_path: src/providers/slack/credentials.json
+    callback_url: http://localhost:8001/auth/callback
+    scopes:
+      - chat:write

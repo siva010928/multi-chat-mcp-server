@@ -55,7 +55,7 @@ class TestRegexSearchTool:
     async def test_date_filtered_regex_search(self, mock_list):
         filtered = [m for m in MOCK_MESSAGES_REGEX if m["createTime"] > "2024-05-17T00:00:00Z"]
         mock_list.return_value = {"messages": filtered}
-        result = await search_messages_tool(r"v\d+\.\d+\.\d+", "regex", [SPACE_ID], start_date="2024-05-17")
+        result = await search_messages_tool(r"v\d+\.\d+\.\d+", "regex", [SPACE_ID], days_window=7, offset=7)
         assert len(result["messages"]) == 1
         assert "v2.0.1-beta" in result["messages"][0]["text"]
 

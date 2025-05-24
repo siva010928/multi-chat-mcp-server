@@ -40,8 +40,7 @@ class TestGoogleChatMCPMessageTools:
         assert "thread" in reply
 
     async def test_get_space_messages_tool(self, authenticated, test_space):
-        today = datetime.now().strftime('%Y-%m-%d')
-        result = await get_space_messages_tool(space_name=test_space, start_date=today)
+        result = await get_space_messages_tool(space_name=test_space, days_window=1)
         assert "messages" in result
         assert result["source"] == "get_space_messages"
 

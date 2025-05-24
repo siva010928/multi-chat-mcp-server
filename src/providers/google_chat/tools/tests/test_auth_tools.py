@@ -31,7 +31,6 @@ async def test_authentication():
     else:
         print("❌ Authentication failed - no valid credentials")
         assert False
-        return False
 
 
 @pytest.mark.asyncio

@@ -35,18 +35,18 @@ class TestGoogleChatSpaceTools:
         """Ensure date range filtering works in participant analysis."""
         result = await get_conversation_participants_tool(
             test_space,
-            start_date="2025-01-01",
-            end_date=datetime.now().strftime('%Y-%m-%d')
+            days_window=30,
+            offset=0
         )
         assert isinstance(result, list)
 
     async def test_get_conversation_participants_invalid_dates(self, test_space):
-        """Ensure date format errors are handled."""
-        with pytest.raises(ValueError, match="start_date must be in YYYY-MM-DD"):
-            await get_conversation_participants_tool(test_space, start_date="01-01-2025")
-
-        with pytest.raises(ValueError, match="start_date must be before end_date"):
-            await get_conversation_participants_tool(test_space, start_date="2025-05-20", end_date="2025-01-01")
+        """Ensure date validation works."""
+        with pytest.raises(ValueError, match="days_window must be positive"):
+            await get_conversation_participants_tool(test_space, days_window=-1)
+        
+        with pytest.raises(ValueError, match="offset cannot be negative"):
+            await get_conversation_participants_tool(test_space, days_window=7, offset=-2)
 
     async def test_manage_space_members_invalid_user(self, authenticated, test_space):
         """Ensure member add operation with invalid email fails gracefully."""
@@ -79,19 +79,17 @@ class TestGoogleChatSpaceTools:
         result = await summarize_conversation_tool(
             space_name=test_space,
             message_limit=5,
-            start_date="2025-01-01",
-            end_date=datetime.now().strftime('%Y-%m-%d')
+            days_window=30,
+            offset=0
         )
         assert "space" in result
         assert "participants" in result
         assert isinstance(result["participants"], list)
 
     async def test_summarize_conversation_invalid_dates(self, test_space):
-        """Ensure summarization fails with bad dates."""
-        with pytest.raises(ValueError, match="start_date must be in YYYY-MM-DD"):
-            await summarize_conversation_tool(test_space, start_date="01/01/2025")
-
-        with pytest.raises(ValueError, match="start_date must be before end_date"):
-            await summarize_conversation_tool(
-                test_space, start_date="2025-05-20", end_date="2025-01-01"
-            )
+        """Ensure summarization date validation works."""
+        with pytest.raises(ValueError, match="days_window must be positive"):
+            await summarize_conversation_tool(test_space, days_window=-1)
+        
+        with pytest.raises(ValueError, match="offset cannot be negative"):
+            await summarize_conversation_tool(test_space, days_window=7, offset=-2)

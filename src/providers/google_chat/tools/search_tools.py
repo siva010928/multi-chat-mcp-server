@@ -377,12 +377,12 @@ async def search_messages_tool(query: str,
 
 
 @tool()
-async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_sender_info: bool = True,
+async def get_my_mentions_tool(days: int = 7, spaces: list[str] = None, include_sender_info: bool = True,
                           page_size: int = 50, page_token: str = None, offset: int = 0) -> dict:
-    """Get messages that mention the authenticated user from all spaces or a specific space.
+    """Get messages that mention the authenticated user from all spaces or specific spaces.
 
     Searches for messages where the authenticated user is mentioned (by name or @mention)
-    across all accessible spaces or within a specific space. This is useful for finding
+    across all accessible spaces or within specific spaces. This is useful for finding
     messages that require your attention or tracking conversations you've been included in.
 
     This tool uses a combination of the Google Chat API spaces.messages.list method and
@@ -390,7 +390,7 @@ async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_send
     period and then filters them for mentions of the current user's name or email.
 
     This tool requires OAuth authentication. It will retrieve messages where the
-    authenticated user was mentioned by username across all accessible spaces or in a specific space.
+    authenticated user was mentioned by username across all accessible spaces or in specific spaces.
 
     Args:
         days: Number of days to look back for mentions (default: 7).
@@ -403,14 +403,16 @@ async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_send
 
               PERFORMANCE NOTE: Lower values (fewer days) result in faster searches.
 
-        space_id: Optional space ID to check for mentions in a specific space.
-                 If provided, searches only this space. If null (default), searches all accessible spaces.
-                 Can be either a full resource name (e.g., 'spaces/AAQAtjsc9v4') or just the ID portion.
+        spaces: Optional list of space IDs to check for mentions in specific spaces.
+                If provided, searches only these spaces. If null (default), searches all accessible spaces.
+                Each space ID can be either a full resource name or just the ID portion.
+                For a single space, provide a list with one element, e.g., ["spaces/AAQAtjsc9v4"]
 
-                 USAGE STRATEGY:
-                 - For targeted searches, provide specific space_id
-                 - For broad searches across all conversations, leave as null
-                 - Searching a specific space is significantly faster than searching all spaces
+                USAGE STRATEGY:
+                - For targeted searches in specific spaces
+                - For a single space, use a list with one element
+                - More efficient than searching all spaces when you know which spaces to check
+                - Example: ["spaces/AAQAtjsc9v4", "spaces/BBRRtjsc9v5"]
 
         include_sender_info: Whether to include detailed sender information in the returned messages.
                             When true, each message will include a sender_info object with details
@@ -419,11 +421,11 @@ async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_send
                             Set to False if you only need message content and not sender details.
 
         page_size: Maximum number of messages to return per space (default: 50)
-                  Only applies when space_id is provided; otherwise, all matching mentions are returned.
+                  Only applies when searching a single space; otherwise, all matching mentions are returned.
 
                   NOTE: Increasing this value may impact performance but ensures more comprehensive results.
 
-        page_token: Optional page token for pagination (only applicable when space_id is provided)
+        page_token: Optional page token for pagination (only applicable when searching a single space)
                    Use the nextPageToken from a previous response to get the next page of results.
 
                    This allows retrieving messages beyond the initial page_size limit.
@@ -469,7 +471,7 @@ async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_send
     3. Check for mentions in a specific space:
        ```python
        get_my_mentions_tool(
-           space_id="spaces/AAQAtjsc9v4",
+           spaces=["spaces/AAQAtjsc9v4"],
            days=3
        )
        ```
@@ -482,7 +484,15 @@ async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_send
        )
        ```
 
-    5. Sequential non-overlapping searches for methodical review:
+    5. Check for mentions in multiple specific spaces:
+       ```python
+       get_my_mentions_tool(
+           spaces=["spaces/AAQAtjsc9v4", "spaces/BBRRtjsc9v5"],
+           days=3
+       )
+       ```
+
+    6. Sequential non-overlapping searches for methodical review:
        ```python
        # First check last 3 days
        recent_mentions = get_my_mentions_tool(days=3, offset=0)
@@ -496,10 +506,10 @@ async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_send
     """
     logger.info(f"Finding mentions in the last {days} days (offset: {offset} days)")
 
-    # Get mentions from all spaces or single space
+    # Get mentions from all spaces, specific spaces, or a single space
     result = await get_my_mentions(
         days=days,
-        space_id=space_id,
+        spaces=spaces,
         include_sender_info=include_sender_info,
         page_size=page_size,
         page_token=page_token,

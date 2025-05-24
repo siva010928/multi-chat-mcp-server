@@ -71,7 +71,7 @@ class TestListSpaceMessages:
         # Test negative days_window
         with pytest.raises(ValueError, match="days_window must be positive"):
             await list_space_messages("spaces/abc", days_window=-1)
-            
+
         # Test negative offset
         with pytest.raises(ValueError, match="offset cannot be negative"):
             await list_space_messages("spaces/abc", offset=-1)
@@ -154,7 +154,9 @@ class TestUpdateMessage:
             await update_message(MESSAGE_NAME, text="Anything")
 
     @pytest.mark.asyncio
-    async def test_update_message_no_input(self):
+    @patch("src.providers.google_chat.api.messages.get_credentials")
+    async def test_update_message_no_input(self, mock_get_creds):
+        mock_get_creds.return_value = MagicMock()
         with pytest.raises(ValueError, match="At least one of text or cards_v2 must be provided"):
             await update_message(MESSAGE_NAME)  # ✅ call it inside async
 
@@ -369,4 +371,3 @@ class TestListMessagesWithSenderInfo:
         assert result["messages"][0]["sender_info"]["email"] == "user1@example.com"
         assert result["messages"][1]["sender_info"]["display_name"] == "User Two"
         assert mock_user_info.await_count == 2
-

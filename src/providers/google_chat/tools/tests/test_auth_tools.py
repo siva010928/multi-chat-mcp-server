@@ -9,7 +9,19 @@ import pytest
 import sys
 import os
 
-from src.providers.google_chat.utils.constants import DEFAULT_TOKEN_PATH
+from src.mcp_core.engine.provider_loader import get_provider_config_value, initialize_provider_config
+
+# Initialize the provider configuration
+initialize_provider_config("google_chat")
+
+# Get token path from provider config
+DEFAULT_TOKEN_PATH = get_provider_config_value("google_chat", "token_path")
+
+# Convert to absolute path if it's a relative path
+if not os.path.isabs(DEFAULT_TOKEN_PATH):
+    # Get the project root directory (parent of src)
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../../'))
+    DEFAULT_TOKEN_PATH = os.path.join(project_root, DEFAULT_TOKEN_PATH)
 
 # Add the project root to the path so we can import the src modules
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))))
@@ -57,7 +69,7 @@ async def test_get_user_info_by_id_with_none():
         print("\n=== Skipping get_user_info_by_id (no user ID) ===")
         assert True  # Test passes if it skips gracefully
         return
-    
+
     # This code shouldn't execute with None user_id
     result = await get_user_info_by_id(user_id)
     assert result is not None
@@ -78,11 +90,11 @@ async def run_tests():
     # First, check authentication
     auth_ok = await test_authentication()
     assert auth_ok, "Authentication failed"
-    
+
     # Test user info
     await test_get_my_user_info(auth_ok)
     await test_get_user_info_by_id_with_none()
-    
+
     print("\n=== All authentication tests completed ===")
     return True
 

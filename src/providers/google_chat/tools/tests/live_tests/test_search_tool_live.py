@@ -1,5 +1,10 @@
+import os
+import sys
 import pytest
 import traceback
+
+# Add the project root to the Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../..")))
 
 from src.providers.google_chat.api.search import search_messages
 from src.providers.google_chat.api.summary import get_my_mentions

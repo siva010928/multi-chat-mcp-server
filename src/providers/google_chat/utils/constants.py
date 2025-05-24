@@ -2,12 +2,6 @@
 Constants for Google Chat MCP Server integration.
 """
 
-import os
-
-# Get the project root directory
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../.."))
-
-
 # OAuth and API
 DEFAULT_TOKEN_PATH = "/Users/siva010928/Documents/google-chat-mcp-server-main/src/providers/google_chat/token.json"
 CREDENTIALS_FILE = "/Users/siva010928/Documents/google-chat-mcp-server-main/src/providers/google_chat/credentials.json"

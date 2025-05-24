@@ -7,8 +7,14 @@ from typing import Optional, Tuple
 
 from src.providers.google_chat.api.messages import list_space_messages
 from src.providers.google_chat.api.spaces import list_chat_spaces
-from src.providers.google_chat.utils.constants import SEARCH_CONFIG_YAML_PATH
-from src.providers.google_chat.utils.search_manager import SearchManager
+from src.mcp_core.engine.provider_loader import get_provider_config_value
+from src.providers.google_chat.utils.search_manager import SearchManager, PROVIDER_NAME
+
+# Get configuration values
+SEARCH_CONFIG_YAML_PATH = get_provider_config_value(
+    PROVIDER_NAME, 
+    "search_config_path"
+)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -66,7 +72,7 @@ async def search_messages(
             # Use a much larger page_size to get as many messages as possible in one request
             # Google Chat API typically limits to 1000 messages per request
             large_page_size = 1000
-            
+
             # Initial search with original days_window and offset
             current_days_window = original_days_window
             result = await list_space_messages(
@@ -106,7 +112,7 @@ async def search_messages(
                     current_days_window = original_days_window * 10
                     used_days_window = current_days_window  # Update the used window
                     logger.info(f"Semantic fallback: retrying {space_name} with a much larger window ({current_days_window} days)")
-                    
+
                     result = await list_space_messages(
                         space_name,
                         include_sender_info=include_sender_info,
@@ -122,7 +128,7 @@ async def search_messages(
             # Add space information to messages
             for msg in messages:
                 msg["space_info"] = {"name": space_name}
-            
+
             # Only collect the initial set of messages
             all_messages.extend(messages)
 
@@ -130,12 +136,12 @@ async def search_messages(
             next_page_token = result.get("nextPageToken")
             page_count = 1
             max_pages = 10  # Increased max pages to ensure we get all messages within the time window
-            
+
             # Fetch all remaining pages as long as there's a next_page_token
             while next_page_token and page_count < max_pages:
                 page_count += 1
                 logger.info(f"Fetching next page of messages (page {page_count})")
-                
+
                 # Get next page of messages
                 next_page = await list_space_messages(
                     space_name,
@@ -146,17 +152,17 @@ async def search_messages(
                     days_window=current_days_window,
                     offset=offset
                 )
-                
+
                 next_page_messages = next_page.get("messages", [])
                 next_page_token = next_page.get("nextPageToken")
-                
+
                 # Add space information to messages
                 for msg in next_page_messages:
                     msg["space_info"] = {"name": space_name}
-                
+
                 all_messages.extend(next_page_messages)
                 logger.info(f"Added {len(next_page_messages)} messages from page {page_count}. Total: {len(all_messages)}")
-                
+
                 # If we have no more messages to fetch, break the loop
                 if not next_page_token or not next_page_messages:
                     break
@@ -187,7 +193,7 @@ async def search_messages(
 
     # Only limit the final results returned to the user, not the messages we search through
     final_messages = [msg for _, msg in results[:max_results]]
-    
+
     # Ensure messages are sorted by createTime in descending order (newest first)
     # This ensures consistent ordering regardless of how the search manager sorted by relevance
     final_messages.sort(key=lambda msg: msg.get("createTime", ""), reverse=True)

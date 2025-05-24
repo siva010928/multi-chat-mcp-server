@@ -10,7 +10,16 @@ from typing import Optional
 
 import yaml
 
-from src.providers.google_chat.utils.constants import SEARCH_CONFIG_YAML_PATH
+from src.mcp_core.engine.provider_loader import get_provider_config_value
+
+# Provider name
+PROVIDER_NAME = "google_chat"
+
+# Get configuration values
+SEARCH_CONFIG_YAML_PATH = get_provider_config_value(
+    PROVIDER_NAME, 
+    "search_config_path"
+)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -148,13 +157,13 @@ class SearchManager:
                     if variant not in expanded_to_contraction:
                         expanded_to_contraction[variant] = []
                     expanded_to_contraction[variant].append(contraction)
-        
+
         # Add expanded forms to contraction pairs for lookup
         contraction_pairs.update(expanded_to_contraction)
 
         # Create alternative forms to search for
         alternatives = [query_lower]
-        
+
         # Check for contractions in the query
         for contraction, variants in contraction_pairs.items():
             if contraction.lower() in query_lower:
@@ -163,7 +172,7 @@ class SearchManager:
                     alt_query = query_lower.replace(contraction.lower(), variant.lower())
                     if alt_query != query_lower and alt_query not in alternatives:
                         alternatives.append(alt_query)
-        
+
         logger.info(f"Exact search with {len(alternatives)} alternatives: {alternatives}")
 
         for msg in messages:
@@ -216,11 +225,11 @@ class SearchManager:
             "won't": ["wouldn't", "won't", "will not", "would not"],
             "wouldn't": ["won't", "wouldn't", "would not", "will not"]
         }
-        
+
         # Check if we need special handling for contractions
         flexible_query = normalized_query
         found_contraction = False
-        
+
         for contraction, alternatives in contraction_terms.items():
             if contraction.lower() in normalized_query.lower():
                 # Create a pattern that matches all forms
@@ -232,14 +241,14 @@ class SearchManager:
                         parts.append(alt_pattern)
                     else:
                         parts.append(re.escape(alt))
-                
+
                 # Combine alternatives with OR
                 pattern_part = "(" + "|".join(parts) + ")"
                 flexible_query = re.sub(re.escape(contraction), pattern_part, normalized_query, flags=re.IGNORECASE)
                 found_contraction = True
                 logger.info(f"Regex search with contraction handling: '{query}' -> '{flexible_query}'")
                 break
-                
+
         if not found_contraction:
             # General handling for any apostrophe
             if "'" in flexible_query:

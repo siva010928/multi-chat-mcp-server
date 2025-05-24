@@ -3,6 +3,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.providers.google_chat.api.search import search_messages
 
+# Mock configuration for tests
+MOCK_CONFIG = {
+    "search_config_path": "mock_search_config.yaml"
+}
+
 # Shared constants
 SPACE = "spaces/test"
 MSG_OLD = {
@@ -16,6 +21,12 @@ MSG_RECENT = {
     "createTime": "2024-05-20T09:15:00Z"
 }
 
+
+@pytest.fixture(autouse=True)
+def mock_provider_config():
+    """Mock the provider_loader.load_provider_config function to return our test config."""
+    with patch("src.mcp_core.engine.provider_loader.load_provider_config", return_value=MOCK_CONFIG):
+        yield
 
 @pytest.mark.asyncio
 async def test_date_filter_formatting_and_fallback_with_semantic():
@@ -49,12 +60,12 @@ async def test_date_filter_formatting_and_fallback_with_semantic():
         first_call_args = mock_list_messages.call_args_list[0][1]
         assert first_call_args["days_window"] == 1
         assert first_call_args["offset"] == 5
-        
+
         # Verify the second call used an expanded date window
         second_call_args = mock_list_messages.call_args_list[1][1]
         assert second_call_args["days_window"] == 2  # Double the original
         assert second_call_args["offset"] == 5  # Same offset
-        
+
         # Verify result has the message
         assert len(result["messages"]) == 1
         assert result["messages"][0]["name"] == MSG_OLD["name"]

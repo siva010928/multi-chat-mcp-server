@@ -1,8 +1,21 @@
+import os
 import pytest
 import yaml
 
-from src.providers.google_chat.utils.constants import SEARCH_CONFIG_YAML_PATH
+from src.mcp_core.engine.provider_loader import get_provider_config_value, initialize_provider_config
 from src.providers.google_chat.utils.search_manager import SearchManager
+
+# Initialize the provider configuration
+initialize_provider_config("google_chat")
+
+# Get search config path from provider config
+SEARCH_CONFIG_YAML_PATH = get_provider_config_value("google_chat", "search_config_path")
+
+# Convert to absolute path if it's a relative path
+if not os.path.isabs(SEARCH_CONFIG_YAML_PATH):
+    # Get the project root directory (parent of src)
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../../'))
+    SEARCH_CONFIG_YAML_PATH = os.path.join(project_root, SEARCH_CONFIG_YAML_PATH)
 
 
 @pytest.fixture(scope="module")

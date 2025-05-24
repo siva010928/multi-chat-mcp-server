@@ -9,8 +9,18 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse, RedirectResponse
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-from src.providers.google_chat.api.auth import get_credentials, token_info, save_credentials, refresh_token
-from src.providers.google_chat.utils.constants import DEFAULT_CALLBACK_URL, SCOPES, CREDENTIALS_FILE
+from src.providers.google_chat.api.auth import get_credentials, token_info, save_credentials, refresh_token, SCOPES, PROVIDER_NAME
+from src.mcp_core.engine.provider_loader import get_provider_config_value
+
+# Get configuration values
+DEFAULT_CALLBACK_URL = get_provider_config_value(
+    PROVIDER_NAME, 
+    "callback_url"
+)
+CREDENTIALS_FILE = get_provider_config_value(
+    PROVIDER_NAME, 
+    "credentials_path"
+)
 
 # Store OAuth flow state
 oauth_flows: Dict[str, InstalledAppFlow] = {}
@@ -163,7 +173,7 @@ async def check_auth_status():
                 "token_path": str(token_path)
             }
         )
-    
+
     try:
         creds = get_credentials()
         if creds:
@@ -197,23 +207,23 @@ async def check_auth_status():
 
 def run_auth_server(port: int = 8000, host: str = "localhost"):
     """Run the authentication server with graceful shutdown support
-    
+
     Args:
         port: Port to run the server on (default: 8000)
         host: Host to bind the server to (default: localhost)
     """
     server_config = uvicorn.Config(app, host=host, port=port)
     server = uvicorn.Server(server_config)
-    
+
     # Handle graceful shutdown
     def signal_handler(signum, frame):
         print("\nReceived signal to terminate. Performing graceful shutdown...")
         asyncio.create_task(server.shutdown())
-    
+
     # Register signal handlers
     signal.signal(signal.SIGINT, signal_handler)  # Handle Ctrl+C
     signal.signal(signal.SIGTERM, signal_handler)  # Handle termination signal
-    
+
     try:
         print(f"\nServer is running at: http://{host}:{port}")
         print(f"Default callback URL: {DEFAULT_CALLBACK_URL}")

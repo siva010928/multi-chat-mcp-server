@@ -11,12 +11,29 @@ from src.providers.google_chat.api.auth import (
     get_user_info_by_id
 )
 
+# Mock configuration for tests
+MOCK_CONFIG = {
+    "token_path": "dummy/token.json",
+    "scopes": [
+        "https://www.googleapis.com/auth/chat.spaces.readonly",
+        "https://www.googleapis.com/auth/chat.messages",
+        "https://www.googleapis.com/auth/chat.messages.create",
+        "https://www.googleapis.com/auth/chat.spaces"
+    ]
+}
+
 
 DUMMY_TOKEN_PATH = "dummy/token.json"
 
 
 @pytest.mark.asyncio
 class TestAuthUtils:
+
+    @pytest.fixture(autouse=True)
+    def mock_provider_config(self):
+        """Mock the provider_loader.load_provider_config function to return our test config."""
+        with patch("src.mcp_core.engine.provider_loader.load_provider_config", return_value=MOCK_CONFIG):
+            yield
 
     @pytest.fixture
     def dummy_creds(self):

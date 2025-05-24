@@ -29,9 +29,22 @@ async def send_message_tool(space_name: str, text: str) -> dict:
                    Can be either a full resource name (e.g., 'spaces/AAQAtjsc9v4')
                    or just the ID portion ('AAQAtjsc9v4'). If only the ID is provided,
                    it will be automatically prefixed with 'spaces/'.
+                   
+                   IMPORTANT: You can get space IDs using the get_chat_spaces_tool.
+                   
         text: Text content of the message. Can include plain text or limited markdown formatting,
               including bold, italic, strikethrough, and inline code. Supports up to 4,096 characters.
               Emojis (Unicode) are also supported.
+              
+              FORMATTING TIPS:
+              - Use *asterisks* for bold text
+              - Use _underscores_ for italic text
+              - Use ~tildes~ for strikethrough text
+              - Use `backticks` for inline code
+              - Multiple paragraphs are supported (use blank lines)
+              - URLs will be automatically hyperlinked
+              - Use Unicode emoji symbols directly: "👍 Great work!"
+              - Supports numbered and bulleted lists
 
     Returns:
         The created message object with properties such as:
@@ -44,6 +57,40 @@ async def send_message_tool(space_name: str, text: str) -> dict:
 
     API Reference:
         https://developers.google.com/chat/api/reference/rest/v1/spaces.messages/create
+        
+    Examples:
+    
+    1. Basic message:
+       ```python
+       send_message_tool(
+           space_name="spaces/AAQAtjsc9v4",
+           text="Hello team! This is a simple message."
+       )
+       ```
+       
+    2. Message with formatting:
+       ```python
+       send_message_tool(
+           space_name="AAQAtjsc9v4",  # Space ID without 'spaces/' prefix
+           text="*Important Update*\n\nThe meeting scheduled for tomorrow has been _rescheduled_ to Friday at 2pm.\n\nPlease update your calendars accordingly."
+       )
+       ```
+       
+    3. Technical message with code formatting:
+       ```python
+       send_message_tool(
+           space_name="spaces/AAQAtjsc9v4", 
+           text="The API is returning a `404` error when accessing `/api/users`. Please check if the endpoint is correctly configured."
+       )
+       ```
+       
+    4. Status update with emoji:
+       ```python
+       send_message_tool(
+           space_name="spaces/AAQAtjsc9v4",
+           text="🚀 Deployment completed successfully!\n\n✅ All tests passed\n✅ Database migration successful\n✅ New features enabled"
+       )
+       ```
     """
 
     if not space_name.startswith('spaces/'):
@@ -214,12 +261,39 @@ async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: s
                    Can be either a full resource name (e.g., 'spaces/AAQAtjsc9v4')
                    or just the ID portion ('AAQAtjsc9v4'). If only the ID is provided,
                    it will be automatically prefixed with 'spaces/'.
+                   
+                   IMPORTANT: You can get space IDs using the get_chat_spaces_tool.
+                   
         thread_key: The identifier for the thread to reply to. This can be:
                    - A thread key (e.g., 'thread123')
                    - A thread name (e.g., 'spaces/AAQAtjsc9v4/threads/thread123')
                    - A message ID (the system will attempt to find its thread)
+                   
+                   IMPORTANT: When replying to a message, you can extract the thread_key from 
+                   the original message's 'name' field, which has the format:
+                   'spaces/{space_id}/messages/{message_id}'
+                   
+                   THREAD RETRIEVAL STRATEGIES:
+                   1. Use search_messages_tool to find messages with specific content
+                   2. Extract thread_key from message objects in the search results
+                   3. Use that thread_key with this tool to continue the conversation
+                   
+                   CREATING NEW THREADS VS REPLYING:
+                   - To start a new thread, use send_message_tool
+                   - To continue an existing thread, use this tool
+                   
         text: Text content of the reply. Can include plain text or limited markdown formatting,
               including bold, italic, strikethrough, and inline code. Supports up to 4,096 characters.
+              
+              FORMATTING TIPS:
+              - Use *asterisks* for bold text
+              - Use _underscores_ for italic text
+              - Use ~tildes~ for strikethrough text
+              - Use `backticks` for inline code
+              - Multiple paragraphs are supported (use blank lines)
+              - URLs will be automatically hyperlinked
+              - Use Unicode emoji symbols directly: "👍 Great work!"
+              - Supports numbered and bulleted lists
 
     Returns:
         The created message object with properties such as:
@@ -232,8 +306,59 @@ async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: s
 
     API Reference:
         https://developers.google.com/chat/api/reference/rest/v1/spaces.messages/create
+        
+    Examples:
+    
+    1. Basic reply to a thread:
+       ```python
+       reply_to_message_thread_tool(
+           space_name="spaces/AAQAtjsc9v4",
+           thread_key="spaces/AAQAtjsc9v4/threads/thread123",
+           text="Thanks for the update! I'll review this today."
+       )
+       ```
+       
+    2. Reply using just the message ID:
+       ```python
+       reply_to_message_thread_tool(
+           space_name="AAQAtjsc9v4", 
+           thread_key="UBHHVc_AAAA.UBHHVc_AAAA",
+           text="I've completed the task. Here's what I found..."
+       )
+       ```
+       
+    3. Reply from search results (workflow):
+       ```python
+       # First, search for the message you want to reply to
+       search_results = search_messages_tool(
+           query="update on project status",
+           spaces=["spaces/AAQAtjsc9v4"]
+       )
+       
+       # Get the first message and extract its ID
+       if search_results["messages"]:
+           message = search_results["messages"][0]
+           message_name = message["name"]  # Format: spaces/{space}/messages/{message}
+           space_id = message_name.split('/')[1]
+           message_id = message_name.split('/')[-1]
+           
+           # Reply to the thread
+           reply_to_message_thread_tool(
+               space_name=space_id,
+               thread_key=message_id,
+               text="Thanks for the project update. I have a few questions..."
+           )
+       ```
+       
+    4. Technical discussion reply with formatted code:
+       ```python
+       reply_to_message_thread_tool(
+           space_name="spaces/AAQAtjsc9v4",
+           thread_key="UBHHVc_AAAA.UBHHVc_AAAA",
+           text="I think we need to update this function:\n\n```python\ndef process_data(input):\n    # Add validation here\n    result = transform(input)\n    return result\n```"
+       )
+       ```
     """
-
     if not space_name.startswith('spaces/'):
         space_name = f"spaces/{space_name}"
 
@@ -242,14 +367,14 @@ async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: s
 
 @mcp.tool()
 async def get_space_messages_tool(space_name: str,
-                             start_date: str,
-                             end_date: str = None,
                              include_sender_info: bool = False,
                              page_size: int = 25,
                              page_token: str = None,
                              filter_str: str = None,
                              order_by: str = None,
-                             show_deleted: bool = False) -> dict:
+                             show_deleted: bool = False,
+                             days_window: int = 3,
+                             offset: int = 0) -> dict:
     """List messages from a specific Google Chat space with optional time filtering.
 
     Uses the Google Chat API spaces.messages.list method to retrieve messages from a specific space.
@@ -260,31 +385,93 @@ async def get_space_messages_tool(space_name: str,
     If you're looking for specific messages by content, use search_messages instead.
     DO NOT call this after search_messages - search_messages already provides complete message data.
 
-    This tool requires OAuth authentication. The space_name should be in the format
-    'spaces/your_space_id'. Dates should be in YYYY-MM-DD format (e.g., '2024-03-22').
+    WHEN TO USE THIS TOOL vs. SEARCH_MESSAGES_TOOL:
+    - Use get_space_messages_tool when you need the complete conversation history and context
+    - Use search_messages_tool when looking for specific content or keywords
+    - get_space_messages_tool is better for exploring recent conversations chronologically
+    - search_messages_tool is better for finding specific messages across longer time periods
 
-    When only start_date is provided, it will query messages for that entire day.
-    When both dates are provided, it will query messages from start_date 00:00:00Z
-    to end_date 23:59:59Z.
+    This tool requires OAuth authentication. The space_name should be in the format
+    'spaces/your_space_id'.
+
+    DATE FILTERING BEHAVIOR:
+    The date range is calculated automatically based on days_window and offset parameters:
+    - end_date = current date minus offset days
+    - start_date = end_date minus days_window days
+
+    For example:
+    - With days_window=3, offset=0: Messages from the last 3 days
+    - With days_window=7, offset=0: Messages from the last 7 days
+    - With days_window=3, offset=7: Messages from 10 to 7 days ago
+
+    Messages are always returned in descending order by creation time (newest first)
+    unless a different order_by is specified.
 
     Args:
         space_name: The resource name of the space to fetch messages from
                    (string, format: "spaces/{space_id}")
-        start_date: Required start date in YYYY-MM-DD format (e.g., "2024-05-01")
-        end_date: Optional end date in YYYY-MM-DD format (e.g., "2024-05-05")
+                   
+                   IMPORTANT: You can get space IDs using the get_chat_spaces_tool.
+                   
         include_sender_info: Whether to include detailed sender information in the returned messages.
                             When true, each message will include a sender_info object with details
                             like email, display_name, and profile_photo. (default: False)
+                            
+                            Set to True when you need to analyze who sent which messages.
+                            
         page_size: Maximum number of messages to return in a single request.
                   Ranges from 1 to 1000. (default: 25, max: 1000)
+                  
+                  USAGE STRATEGY:
+                  - Small values (25-50) for quick checks and better performance
+                  - Larger values (100-1000) for comprehensive analysis or extracting full context
+                  
         page_token: Page token from a previous request for pagination. Use the nextPageToken
                    from a previous response to get the next page of results.
+                   
+                   Use this for systematically processing large message histories.
+                   
         filter_str: Optional filter string in the format specified by Google Chat API.
                    For example: 'createTime > "2023-04-21T11:30:00-04:00"'
                    See API reference for full filter syntax options.
+                   
+                   ADVANCED FILTERING:
+                   - Date-based: 'createTime > "2023-04-21T11:30:00-04:00"'
+                   - Combined filters: 'createTime > "2023-04-21T00:00:00Z" AND createTime < "2023-04-22T00:00:00Z"'
+                   
+                   Usually not needed as days_window and offset provide simpler date filtering.
+                   
         order_by: How messages are ordered, format: "<field> <direction>",
-                 e.g., "createTime DESC" (default: "createTime ASC")
+                 e.g., "createTime DESC" (default: "createTime desc" - newest first)
+                 
+                 OPTIONS:
+                 - "createTime desc" (newest first - DEFAULT)
+                 - "createTime asc" (oldest first - for chronological analysis)
+                 
         show_deleted: Whether to include deleted messages in the results (default: False)
+                     Set to True if you need to see messages that were deleted.
+                     
+        days_window: Number of days to look back for messages (default: 3).
+                    This parameter controls the date range for message retrieval.
+                    For example, if days_window=3, messages from the last 3 days will be retrieved.
+                    
+                    SIZING GUIDELINES:
+                    - 1-3 days: Recent conversations
+                    - 7 days: Weekly review
+                    - 30 days: Monthly review
+                    - Larger values may impact performance
+                    
+        offset: Number of days to offset the end date from today (default: 0). 
+               For example, if offset=3, the end date will be 3 days before today,
+               and with days_window=3, messages from 6 to 3 days ago will be retrieved.
+               
+               INCREMENTAL SEARCH STRATEGY:
+               To efficiently analyze historical messages in chunks:
+               1. Start with recent messages: days_window=3, offset=0
+               2. Move backward in time by increasing offset:
+                  - Second batch: days_window=3, offset=3
+                  - Third batch: days_window=3, offset=6
+               3. Always track nextPageToken to ensure complete coverage
 
     Returns:
         Dictionary containing:
@@ -297,52 +484,103 @@ async def get_space_messages_tool(space_name: str,
           - Other message properties like attachments, annotations, etc.
         - nextPageToken: Token for retrieving the next page of results, or null if no more results
         - source: "get_space_messages" (to help differentiate from other message retrieval tools)
+        - message_count: Number of messages returned (integer)
 
     Raises:
         ValueError: If the date format is invalid or dates are in wrong order
+        
+    Examples:
+    
+    1. Get recent messages from a space:
+       ```python
+       get_space_messages_tool(
+           space_name="spaces/AAQAtjsc9v4",
+           page_size=50
+       )
+       ```
+       
+    2. Get messages with detailed sender information:
+       ```python
+       get_space_messages_tool(
+           space_name="spaces/AAQAtjsc9v4",
+           include_sender_info=True,
+           page_size=50
+       )
+       ```
+       
+    3. Get messages from one week ago (non-overlapping with recent messages):
+       ```python
+       get_space_messages_tool(
+           space_name="spaces/AAQAtjsc9v4",
+           days_window=7,
+           offset=7,  # Skip the last 7 days
+           page_size=100
+       )
+       ```
+       
+    4. Retrieve messages chronologically (oldest first):
+       ```python
+       get_space_messages_tool(
+           space_name="spaces/AAQAtjsc9v4",
+           order_by="createTime asc",
+           days_window=30,  # Last month
+           page_size=100
+       )
+       ```
+       
+    5. Pagination example for handling large message histories:
+       ```python
+       # Get first page of messages
+       first_page = get_space_messages_tool(
+           space_name="spaces/AAQAtjsc9v4",
+           page_size=100
+       )
+       
+       # Process messages from first page
+       messages = first_page.get("messages", [])
+       
+       # If there are more pages, get the next page
+       next_page_token = first_page.get("nextPageToken")
+       if next_page_token:
+           second_page = get_space_messages_tool(
+               space_name="spaces/AAQAtjsc9v4",
+               page_size=100,
+               page_token=next_page_token
+           )
+           # Add messages from second page
+           messages.extend(second_page.get("messages", []))
+       ```
 
     API Reference:
         https://developers.google.com/chat/api/reference/rest/v1/spaces.messages/list
     """
 
-    try:
-        # Parse start date and set to beginning of day (00:00:00Z)
-        start_datetime = datetime.strptime(start_date, '%Y-%m-%d').replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-        )
+    if not space_name.startswith('spaces/'):
+        space_name = f"spaces/{space_name}"
 
-        # Parse end date if provided and set to end of day (23:59:59Z)
-        end_datetime = None
-        if end_date:
-            end_datetime = datetime.strptime(end_date, '%Y-%m-%d').replace(
-                hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc
-            )
+    # Always use 'createTime desc' (newest first) if not specified
+    if order_by is None:
+        order_by = "createTime desc"
 
-            # Validate date range
-            if start_datetime > end_datetime:
-                raise ValueError("start_date must be before end_date")
-    except ValueError as e:
-        if "strptime" in str(e):
-            raise ValueError("Dates must be in YYYY-MM-DD format (e.g., '2024-03-22')")
-        raise e
-
-    # Call the updated list_space_messages function
+    # Get messages with date filtering
     result = await list_space_messages(
         space_name,
-        start_datetime,
-        end_datetime,
         include_sender_info=include_sender_info,
         page_size=page_size,
         page_token=page_token,
         filter_str=filter_str,
         order_by=order_by,
-        show_deleted=show_deleted
+        show_deleted=show_deleted,
+        days_window=days_window,
+        offset=offset
     )
 
-    # Add source marker to help LLMs understand this is from get_space_messages
-    if isinstance(result, dict):
-        result["source"] = "get_space_messages"
-
+    # Add source field for identification
+    result["source"] = "get_space_messages"
+    
+    # Add message count to the result
+    result["message_count"] = len(result.get("messages", []))
+    
     return result
 
 @mcp.tool()
@@ -453,10 +691,10 @@ async def get_message_with_sender_info_tool(message_name: str) -> dict:
 
 @mcp.tool()
 async def list_messages_with_sender_info_tool(space_name: str,
-                                         start_date: str = None,
-                                         end_date: str = None,
                                          limit: int = 10,
-                                         page_token: str = None) -> dict:
+                                         page_token: str = None,
+                                         days_window: int = 3,
+                                         offset: int = 0) -> dict:
     """list messages from a specific Google Chat space with sender information.
 
     Retrieves messages from a space and automatically enriches them with detailed
@@ -465,17 +703,31 @@ async def list_messages_with_sender_info_tool(space_name: str,
 
     This tool requires OAuth authentication with both messages and people access permissions.
 
+    DATE FILTERING BEHAVIOR:
+    The date range is calculated automatically based on days_window and offset parameters:
+    - end_date = current date minus offset days
+    - start_date = end_date minus days_window days
+
+    For example:
+    - With days_window=3, offset=0: Messages from the last 3 days
+    - With days_window=7, offset=0: Messages from the last 7 days
+    - With days_window=3, offset=7: Messages from 10 to 7 days ago
+
+    Messages are always returned in descending order by creation time (newest first).
+
     Args:
         space_name: The resource name of the space to fetch messages from.
                    Format: 'spaces/{space_id}' (e.g., 'spaces/AAQAtjsc9v4')
-        start_date: Optional start date in YYYY-MM-DD format (e.g., '2024-05-01')
-                   If provided, only includes messages from this date forward (inclusive)
-        end_date: Optional end date in YYYY-MM-DD format (e.g., '2024-05-05')
-                 If provided, only includes messages up to this date (inclusive)
         limit: Maximum number of messages to return (default: 10)
                Controls the page size of the request.
         page_token: Optional page token for pagination. Use the nextPageToken from a
                    previous response to get the next page of results.
+        days_window: Number of days to look back for messages (default: 3).
+                    This parameter controls the date range for message retrieval.
+                    For example, if days_window=3, messages from the last 3 days will be retrieved.
+        offset: Number of days to offset the end date from today (default: 0). 
+               For example, if offset=3, the end date will be 3 days before today,
+               and with days_window=3, messages from 6 to 3 days ago will be retrieved.
 
     Returns:
         dictionary containing:
@@ -489,6 +741,7 @@ async def list_messages_with_sender_info_tool(space_name: str,
             - profile_photo: URL to sender's profile photo, if available (string or null)
           - Other standard message properties (name, text, createTime, etc.)
         - nextPageToken: Token for retrieving the next page of results, or null if no more results
+        - message_count: Number of messages returned (integer)
 
     Raises:
         ValueError: If date formats are invalid or dates are in wrong order
@@ -498,36 +751,22 @@ async def list_messages_with_sender_info_tool(space_name: str,
         - https://developers.google.com/people/api/rest/v1/people/get
     """
 
-    # Parse dates if provided
-    start_datetime = None
-    end_datetime = None
-
-    if start_date:
-        try:
-            start_datetime = datetime.strptime(start_date, '%Y-%m-%d').replace(
-                hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
-            )
-        except ValueError:
-            raise ValueError("start_date must be in YYYY-MM-DD format (e.g., '2024-03-22')")
-
-    if end_date:
-        try:
-            end_datetime = datetime.strptime(end_date, '%Y-%m-%d').replace(
-                hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc
-            )
-        except ValueError:
-            raise ValueError("end_date must be in YYYY-MM-DD format (e.g., '2024-03-22')")
-
-    if start_datetime and end_datetime and start_datetime > end_datetime:
-        raise ValueError("start_date must be before end_date")
-
-    return await list_messages_with_sender_info(
+    # Call list_space_messages with days_window and offset
+    result = await list_space_messages(
         space_name,
-        start_datetime,
-        end_datetime,
-        limit,
-        page_token
+        include_sender_info=True,
+        page_size=limit,
+        page_token=page_token,
+        order_by="createTime desc",  # Default to newest first
+        days_window=days_window,
+        offset=offset
     )
+    
+    # Add message count if not already present
+    if "message_count" not in result:
+        result["message_count"] = len(result.get("messages", []))
+
+    return result
 
 
 @mcp.tool()

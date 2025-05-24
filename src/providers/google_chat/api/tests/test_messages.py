@@ -45,7 +45,7 @@ class TestListSpaceMessages:
 
         mock_date_filter.return_value = 'createTime > "2024-05-01T00:00:00Z"'
 
-        result = await list_space_messages("spaces/abc", start_date="2024-05-01")
+        result = await list_space_messages("spaces/abc", days_window=3)
         assert "messages" in result
         mock_date_filter.assert_called_once()
 
@@ -68,10 +68,13 @@ class TestListSpaceMessages:
     @patch("src.providers.google_chat.api.messages.build")
     @patch("src.providers.google_chat.api.messages.get_credentials")
     async def test_invalid_date(self, mock_get_creds, mock_build):
-        with patch("src.providers.google_chat.api.messages.create_date_filter") as mock_filter:
-            mock_filter.side_effect = ValueError("Invalid date format")
-            with pytest.raises(ValueError, match="Invalid date format"):
-                await list_space_messages("spaces/abc", start_date="invalid-date")
+        # Test negative days_window
+        with pytest.raises(ValueError, match="days_window must be positive"):
+            await list_space_messages("spaces/abc", days_window=-1)
+            
+        # Test negative offset
+        with pytest.raises(ValueError, match="offset cannot be negative"):
+            await list_space_messages("spaces/abc", offset=-1)
 
 SPACE_NAME = "spaces/abc"
 TEXT = "Hello from test!"

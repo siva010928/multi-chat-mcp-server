@@ -20,15 +20,12 @@ MSG_RECENT = {
 @pytest.mark.asyncio
 async def test_date_filter_formatting_and_fallback_with_semantic():
     """
-    Test that date filter is constructed correctly and fallback is triggered
-    if no results are returned with date filtering.
+    Test that days_window and offset parameters work correctly and fallback is triggered
+    if no results are returned with initial date filtering.
     """
-    with patch("src.providers.google_chat.api.search.list_space_messages", new_callable=AsyncMock) as mock_list_messages, \
-         patch("src.providers.google_chat.api.search.create_date_filter") as mock_create_date_filter:
-
-        mock_create_date_filter.return_value = (
-            'createTime > "2025-05-19T00:00:00Z" AND createTime < "2025-05-19T23:59:59.999999Z"'
-        )
+    with patch("src.providers.google_chat.api.search.list_space_messages", new_callable=AsyncMock) as mock_list_messages:
+        # First call with days_window=1 and offset=5 returns no messages
+        # Second call with expanded date range (days_window=2) returns a message
         mock_list_messages.side_effect = [
             {"messages": []},
             {"messages": [MSG_OLD]},
@@ -44,16 +41,24 @@ async def test_date_filter_formatting_and_fallback_with_semantic():
                 query="financial report",
                 search_mode="semantic",
                 spaces=[SPACE],
-                start_date="2025-05-19",
-                end_date="2025-05-19"
+                days_window=1,
+                offset=5
             )
 
-        assert mock_create_date_filter.called
+        # Verify the first call used the original parameters
+        first_call_args = mock_list_messages.call_args_list[0][1]
+        assert first_call_args["days_window"] == 1
+        assert first_call_args["offset"] == 5
+        
+        # Verify the second call used an expanded date window
+        second_call_args = mock_list_messages.call_args_list[1][1]
+        assert second_call_args["days_window"] == 2  # Double the original
+        assert second_call_args["offset"] == 5  # Same offset
+        
+        # Verify result has the message
         assert len(result["messages"]) == 1
         assert result["messages"][0]["name"] == MSG_OLD["name"]
         assert mock_list_messages.call_count == 2
-        assert "start_date" in mock_list_messages.call_args_list[0][1]
-        assert "start_date" not in mock_list_messages.call_args_list[1][1]
 
 
 @pytest.mark.asyncio
@@ -72,7 +77,7 @@ async def test_returns_results_within_date_range_with_semantic():
                 query="financial analysis",
                 search_mode="semantic",
                 spaces=[SPACE],
-                start_date="2024-05-18"
+                days_window=7
             )
 
         assert len(result["messages"]) == 1
@@ -101,7 +106,7 @@ async def test_falls_back_when_no_date_results_with_semantic():
                 query="financial report",
                 search_mode="semantic",
                 spaces=[SPACE],
-                start_date="2024-05-18"
+                days_window=7
             )
 
         assert len(result["messages"]) == 1
@@ -126,7 +131,7 @@ async def test_regex_enforces_strict_date_filtering():
                 query="budget",
                 search_mode="regex",
                 spaces=[SPACE],
-                start_date="2024-05-18"
+                days_window=7
             )
 
         assert len(result["messages"]) == 0

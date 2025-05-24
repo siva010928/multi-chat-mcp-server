@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, timezone
 
-from src.providers.google_chat.api.attachments import send_file_message, upload_attachment
+from src.providers.google_chat.api.attachments import send_file_message, upload_attachment, send_file_content
 from src.providers.google_chat.api.messages import (
     list_space_messages, create_message, reply_to_thread, get_message, delete_message,
     update_message, add_emoji_reaction, batch_send_messages, list_messages_with_sender_info,
@@ -246,7 +246,7 @@ async def update_chat_message_tool(message_name: str, new_text: str = None) -> d
 
 
 @tool()
-async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: str) -> dict:
+async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: str, file_path: str = None) -> dict:
     """Reply to a message thread in a Google Chat space.
 
     Uses the Google Chat API spaces.messages.create method with thread information to send a reply
@@ -295,6 +295,11 @@ async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: s
               - Use Unicode emoji symbols directly: "👍 Great work!"
               - Supports numbered and bulleted lists
 
+        file_path: Optional path to a file to attach to the reply. If provided, the file will be
+                  read and its contents included in the message. For text files, the content will
+                  be included directly. For binary files, a message indicating it's a binary file
+                  will be included.
+
     Returns:
         The created message object with properties such as:
         - name: Resource name of the created message (string)
@@ -327,7 +332,17 @@ async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: s
        )
        ```
 
-    3. Reply from search results (workflow):
+    3. Reply with a file attachment:
+       ```python
+       reply_to_message_thread_tool(
+           space_name="spaces/AAQAtjsc9v4",
+           thread_key="UBHHVc_AAAA.UBHHVc_AAAA",
+           text="Here's the report you requested.",
+           file_path="/path/to/report.txt"
+       )
+       ```
+
+    4. Reply from search results (workflow):
        ```python
        # First, search for the message you want to reply to
        search_results = search_messages_tool(
@@ -350,7 +365,7 @@ async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: s
            )
        ```
 
-    4. Technical discussion reply with formatted code:
+    5. Technical discussion reply with formatted code:
        ```python
        reply_to_message_thread_tool(
            space_name="spaces/AAQAtjsc9v4",
@@ -362,7 +377,7 @@ async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: s
     if not space_name.startswith('spaces/'):
         space_name = f"spaces/{space_name}"
 
-    return await reply_to_thread(space_name, thread_key, text)
+    return await reply_to_thread(space_name, thread_key, text, file_path=file_path)
 
 
 @tool()
@@ -786,21 +801,24 @@ async def add_emoji_reaction_tool(message_name: str, emoji: str) -> dict:
 
 
 @tool()
-async def upload_attachment_tool(space_name: str, file_path: str, message_text: str = None) -> dict:
+async def upload_attachment_tool(space_name: str, file_path: str, message_text: str = None, thread_key: str = None) -> dict:
     """Upload a file attachment to a Google Chat space.
 
     This tool requires OAuth authentication. It uploads a file as an attachment
-    to a message in a Google Chat space.
+    to a message in a Google Chat space. The file can be sent as a new message
+    or as a reply to an existing thread.
 
     Args:
         space_name: The name/identifier of the space to send the attachment to
         file_path: Path to the file to upload (must be accessible to the server)
         message_text: Optional text message to accompany the attachment
+        thread_key: Optional thread key to reply to. If provided, the attachment
+                   will be sent as a reply to the specified thread.
 
     Returns:
         The created message object with the attachment
     """
-    return await upload_attachment(space_name, file_path, message_text)
+    return await upload_attachment(space_name, file_path, message_text, thread_key)
 
 
 @tool()
@@ -824,60 +842,41 @@ async def batch_send_messages_tool(messages: list[dict]) -> dict:
 
 
 @tool()
-async def send_file_message_tool(space_name: str, file_path: str, message_text: str = None) -> dict:
+async def send_file_message_tool(space_name: str, file_path: str, message_text: str = None, thread_key: str = None) -> dict:
     """Send a message with file contents as a workaround for attachments.
 
     This tool requires OAuth authentication. Instead of using true file attachments,
     this tool reads the file and includes its text content in the message body.
+    The file content can be sent as a new message or as a reply to an existing thread.
 
     Args:
         space_name: The name/identifier of the space to send the file content to
         file_path: Path to the file whose contents will be included in the message
         message_text: Optional text message to accompany the file contents
+        thread_key: Optional thread key to reply to. If provided, the file content
+                   will be sent as a reply to the specified thread.
 
     Returns:
         The created message object
     """
-    return await send_file_message(space_name, file_path, message_text)
+    return await send_file_message(space_name, file_path, message_text, thread_key)
 
 
 @tool()
-async def send_file_content_tool(space_name: str, file_path: str = None) -> dict:
+async def send_file_content_tool(space_name: str, file_path: str = None, thread_key: str = None) -> dict:
     """Send file content as a message (workaround for attachments).
 
     This tool requires OAuth authentication. Instead of true attachments,
-    this sends the file content as a formatted message.
+    this sends the file content as a formatted message. The file content can be sent
+    as a new message or as a reply to an existing thread.
 
     Args:
         space_name: The space to send the message to
         file_path: Optional path to the file to send. If not provided, will use sample_attachment.txt
+        thread_key: Optional thread key to reply to. If provided, the file content
+                   will be sent as a reply to the specified thread.
 
     Returns:
         The created message object
     """
-
-    # Default to sample_attachment.txt if no file specified
-    if not file_path:
-        file_path = "sample_attachment.txt"
-
-    # Create sample file if it doesn't exist
-    if not os.path.exists(file_path):
-        with open(file_path, 'w') as f:
-            f.write("This is a sample attachment file created for testing the Google Chat MCP tools.\n")
-            f.write("Line 2: This demonstrates our workaround for file sharing.\n")
-            f.write("Line 3: The actual attachment upload API needs more work.\n")
-
-    # Read file contents
-    try:
-        with open(file_path, 'r') as f:
-            file_contents = f.read(4000)  # Limit to 4000 chars
-    except:
-        file_contents = "[Error reading file]"
-
-    # Format the message
-    message = f"📄 **File Content: {os.path.basename(file_path)}**\n\n```\n{file_contents}\n```"
-
-    if not space_name.startswith('spaces/'):
-        space_name = f"spaces/{space_name}"
-
-    return await create_message(space_name, message)
+    return await send_file_content(space_name, file_path, thread_key)

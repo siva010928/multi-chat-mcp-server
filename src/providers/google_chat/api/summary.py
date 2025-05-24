@@ -9,16 +9,18 @@ from src.providers.google_chat.api.spaces import list_chat_spaces
 from src.providers.google_chat.utils import rfc3339_format
 
 
-async def get_my_mentions(days: int = 7, space_id: Optional[str] = None, include_sender_info: bool = True,
+async def get_my_mentions(days: int = 7, spaces: Optional[List[str]] = None, include_sender_info: bool = True,
                           page_size: int = 50, page_token: Optional[str] = None, offset: int = 0) -> Dict:
-    """Gets messages that mention the authenticated user from all spaces or a specific space.
+    """Gets messages that mention the authenticated user from all spaces or specific spaces.
 
     Args:
         days: Number of days to look back for mentions (default: 7)
-        space_id: Optional space ID to check for mentions in a specific space
+        spaces: Optional list of space IDs to check for mentions in specific spaces.
+                If provided, searches only these spaces. If None (default), searches all accessible spaces.
+                For a single space, provide a list with one element, e.g., ["spaces/AAQAtjsc9v4"]
         include_sender_info: Whether to include sender information in the returned messages (default: True)
         page_size: Maximum number of messages to return per space (default: 50)
-        page_token: Optional page token for pagination (only applicable when space_id is provided)
+        page_token: Optional page token for pagination (only applicable when searching a single space)
         offset: Number of days to offset the end date from today (default: 0)
 
     Returns:
@@ -27,10 +29,10 @@ async def get_my_mentions(days: int = 7, space_id: Optional[str] = None, include
     # Validate parameters
     if days <= 0:
         raise ValueError("days must be positive")
-    
+
     if offset < 0:
         raise ValueError("offset cannot be negative")
-        
+
     try:
         creds = get_credentials()
         if not creds:
@@ -63,23 +65,23 @@ async def get_my_mentions(days: int = 7, space_id: Optional[str] = None, include
         if not username:
             raise Exception("Could not determine username for mentions")
 
-        # If space_id is provided, we can use pagination and just get messages from one space
-        if space_id:
-            if not space_id.startswith('spaces/'):
-                space_id = f"spaces/{space_id}"
+        # Helper function to process messages from a space and filter for mentions
+        async def process_space_messages(space_name, include_page_token=False):
+            if not space_name.startswith('spaces/'):
+                space_name = f"spaces/{space_name}"
 
             # Get messages from the specific space
             messages_result = await list_space_messages(
-                space_id,
+                space_name,
                 include_sender_info=include_sender_info,
                 page_size=page_size,
-                page_token=page_token,
+                page_token=page_token if include_page_token else None,
                 order_by="createTime desc",  # Default to newest first
                 days_window=days,
                 offset=offset
             )
             messages = messages_result.get('messages', [])
-            next_page_token = messages_result.get('nextPageToken')
+            next_page_token = messages_result.get('nextPageToken') if include_page_token else None
 
             # Filter messages that mention the user by username
             mention_messages = []
@@ -106,30 +108,56 @@ async def get_my_mentions(days: int = 7, space_id: Optional[str] = None, include
                                 is_mention = True
                                 break
 
-                # For testing purposes, include all messages to debug the issue
-                # Remove this line after debugging
-                is_mention = True
+                # Only include messages that are actual mentions
+                # is_mention is already set based on the checks above
 
                 if is_mention:
                     # Add the space information to the message
                     msg["space_info"] = {
-                        "name": space_id
+                        "name": space_name
                     }
                     # Try to get the space display name
                     try:
-                        space_details = service.spaces().get(name=space_id).execute()
+                        space_details = service.spaces().get(name=space_name).execute()
                         msg["space_info"]["displayName"] = space_details.get("displayName", "Unknown Space")
                     except:
                         msg["space_info"]["displayName"] = "Unknown Space"
 
                     mention_messages.append(msg)
 
+            return mention_messages, next_page_token
+
+        # If spaces list is provided with a single space, we can use pagination
+        if spaces and len(spaces) == 1:
+            mention_messages, next_page_token = await process_space_messages(spaces[0], include_page_token=True)
+
             return {
                 'messages': mention_messages,
                 'nextPageToken': next_page_token
             }
 
-        # If no space_id is provided, we need to search across all spaces
+        # If spaces list is provided with multiple spaces
+        elif spaces and len(spaces) > 1:
+            all_mentions = []
+
+            # Process each space in the provided list
+            for space_name in spaces:
+                if not space_name:
+                    continue
+
+                try:
+                    mentions, _ = await process_space_messages(space_name)
+                    all_mentions.extend(mentions)
+                except Exception as e:
+                    # If we fail to get messages from one space, continue with others
+                    continue
+
+            return {
+                'messages': all_mentions,
+                'nextPageToken': None  # No pagination when searching across multiple spaces
+            }
+
+        # If neither space_id nor spaces is provided, search across all spaces
         else:
             # Get all spaces
             spaces_response = await list_chat_spaces()
@@ -143,58 +171,9 @@ async def get_my_mentions(days: int = 7, space_id: Optional[str] = None, include
                     continue
 
                 try:
-                    # Get messages from this space
-                    messages_result = await list_space_messages(
-                        space_name,
-                        include_sender_info=include_sender_info,
-                        page_size=page_size,
-                        order_by="createTime desc",  # Default to newest first
-                        days_window=days,
-                        offset=offset
-                    )
-                    messages = messages_result.get('messages', [])
-
-                    # Filter messages that mention the user by username
-                    for msg in messages:
-                        text = msg.get("text", "")
-                        # Check if the username is in the text (could be in the form @username or just username)
-                        # Also check for common mention patterns and annotations
-                        is_mention = False
-
-                        # Check for username in text (case insensitive)
-                        if username.lower() in text.lower() or f"@{username.lower()}" in text.lower():
-                            is_mention = True
-
-                        # Check for annotations that might indicate mentions
-                        annotations = msg.get("annotations", [])
-                        for annotation in annotations:
-                            # Check if this annotation is a user mention
-                            if annotation.get("type") == "USER_MENTION":
-                                # If we have user info, check if it matches current user
-                                mentioned_user = annotation.get("userMention", {})
-                                if mentioned_user:
-                                    # If we have a direct match on user ID
-                                    if "user" in mentioned_user and mentioned_user.get("user", {}).get("name") == user_info.get("name"):
-                                        is_mention = True
-                                        break
-
-                        # For testing purposes, include all messages to debug the issue
-                        # Remove this line after debugging
-                        is_mention = True
-
-                        if is_mention:
-                            # Add the space information to the message
-                            msg["space_info"] = {
-                                "name": space_name
-                            }
-                            # Try to get the space display name
-                            try:
-                                space_details = service.spaces().get(name=space_name).execute()
-                                msg["space_info"]["displayName"] = space_details.get("displayName", "Unknown Space")
-                            except:
-                                msg["space_info"]["displayName"] = "Unknown Space"
-
-                            all_mentions.append(msg)
+                    # Use the helper function to process messages from this space
+                    mentions, _ = await process_space_messages(space_name)
+                    all_mentions.extend(mentions)
                 except Exception:
                     # If we fail to get messages from one space, continue with others
                     continue
@@ -233,10 +212,10 @@ async def get_conversation_participants(space_name: str,
     # Validate parameters
     if days_window <= 0:
         raise ValueError("days_window must be positive")
-    
+
     if offset < 0:
         raise ValueError("offset cannot be negative")
-        
+
     try:
         # Get messages with sender info
         result = await list_space_messages(
@@ -292,10 +271,10 @@ async def summarize_conversation(space_name: str,
     # Validate parameters
     if days_window <= 0:
         raise ValueError("days_window must be positive")
-    
+
     if offset < 0:
         raise ValueError("offset cannot be negative")
-        
+
     try:
         # Get space details
         creds = get_credentials()

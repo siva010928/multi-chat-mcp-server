@@ -2,13 +2,13 @@ import logging
 
 from src.providers.google_chat.api.search import search_messages
 from src.providers.google_chat.api.summary import get_my_mentions
-from src.mcp_instance import mcp
+from src.providers.google_chat.mcp_instance import mcp, tool
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool()
+@tool()
 async def search_messages_tool(query: str,
                           search_mode: str = None,
                           spaces: list[str] = None,
@@ -124,7 +124,7 @@ async def search_messages_tool(query: str,
                    If no results are found in the initial date range, the system will 
                    automatically try with an expanded date range (double the window size)
                    before falling back to other strategies.
-                   
+
                    INCREMENTAL SEARCH STRATEGY:
                    To effectively search through historical messages in chunks:
                    1. Start with small window (days_window=3, offset=0) for recent messages
@@ -142,7 +142,7 @@ async def search_messages_tool(query: str,
         offset: Number of days to offset the end date from today (default: 0).
                For example, if offset=3, the end date will be 3 days before today,
                and with days_window=3, messages from 6 to 3 days ago will be retrieved.
-               
+
                OFFSET EXPLAINED:
                - offset=0: End date is today (search includes most recent messages)
                - offset=7: End date is 7 days ago (search excludes the last 7 days of messages)
@@ -269,7 +269,7 @@ async def search_messages_tool(query: str,
            days_window=3,
            offset=0
        )
-       
+
        # Second search - previous 3 days (days 3-6)
        results_second = search_messages_tool(
            query="project updates",
@@ -298,7 +298,7 @@ async def search_messages_tool(query: str,
            days_window=3,
            offset=0
        )
-       
+
        # If not found, check next time chunk (3-6 days ago)
        if len(recent_results.get("messages", [])) == 0:
            older_results = search_messages_tool(
@@ -306,7 +306,7 @@ async def search_messages_tool(query: str,
                days_window=3,
                offset=3
            )
-       
+
        # Continue searching further back if needed (6-9 days ago)
        if len(older_results.get("messages", [])) == 0:
            oldest_results = search_messages_tool(
@@ -316,7 +316,7 @@ async def search_messages_tool(query: str,
            )
        ```
        This pattern allows methodically searching back in time without missing messages.
-       
+
     9. Combining regex searches with word boundaries:
        ```python
        search_messages_tool(
@@ -327,7 +327,7 @@ async def search_messages_tool(query: str,
        ```
        This will find messages where "error" and "failed" appear within 50 characters of each other,
        but only when they're complete words (not parts of other words).
-       
+
     10. Finding messages with exact phrases that might have contraction variants:
         ```python
         search_messages_tool(
@@ -336,7 +336,7 @@ async def search_messages_tool(query: str,
         )
         ```
         This handles different ways people might phrase the same concept with contractions.
-        
+
     11. Comparing OR operator (|) vs space-separated terms:
         ```python
         # More effective: Using the OR operator to match any of these terms
@@ -344,7 +344,7 @@ async def search_messages_tool(query: str,
             query="report|update|status|progress",
             search_mode="regex"
         )
-        
+
         # Less effective: This would try to match all terms in a single message
         search_messages_tool(
             query="report update status progress",
@@ -368,7 +368,7 @@ async def search_messages_tool(query: str,
         days_window,
         offset
     )
-    
+
     # Add message count if not already present
     if "message_count" not in result:
         result["message_count"] = len(result.get("messages", []))
@@ -376,7 +376,7 @@ async def search_messages_tool(query: str,
     return result
 
 
-@mcp.tool()
+@tool()
 async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_sender_info: bool = True,
                           page_size: int = 50, page_token: str = None, offset: int = 0) -> dict:
     """Get messages that mention the authenticated user from all spaces or a specific space.
@@ -395,49 +395,49 @@ async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_send
     Args:
         days: Number of days to look back for mentions (default: 7).
               Specifies the time period to search within, from now back this many days.
-              
+
               USAGE STRATEGY:
               - For recent mentions: days=1 or days=3
               - For weekly review: days=7
               - For monthly review: days=30
-              
+
               PERFORMANCE NOTE: Lower values (fewer days) result in faster searches.
-              
+
         space_id: Optional space ID to check for mentions in a specific space.
                  If provided, searches only this space. If null (default), searches all accessible spaces.
                  Can be either a full resource name (e.g., 'spaces/AAQAtjsc9v4') or just the ID portion.
-                 
+
                  USAGE STRATEGY:
                  - For targeted searches, provide specific space_id
                  - For broad searches across all conversations, leave as null
                  - Searching a specific space is significantly faster than searching all spaces
-              
+
         include_sender_info: Whether to include detailed sender information in the returned messages.
                             When true, each message will include a sender_info object with details
                             like email, display_name, and profile_photo. (default: True)
-                            
+
                             Set to False if you only need message content and not sender details.
-                            
+
         page_size: Maximum number of messages to return per space (default: 50)
                   Only applies when space_id is provided; otherwise, all matching mentions are returned.
-                  
+
                   NOTE: Increasing this value may impact performance but ensures more comprehensive results.
-                  
+
         page_token: Optional page token for pagination (only applicable when space_id is provided)
                    Use the nextPageToken from a previous response to get the next page of results.
-                   
+
                    This allows retrieving messages beyond the initial page_size limit.
-                   
+
         offset: Number of days to offset the end date from today (default: 0).
                For example, if offset=3, the search will exclude mentions from the last 3 days.
-               
+
                USAGE STRATEGY:
                - For current mentions: offset=0 (default)
                - To exclude recent mentions: offset=3 (excludes last 3 days)
                - To check older time periods: combine with days parameter
                  - Last week, excluding today: offset=1, days=7
                  - Previous week only: offset=7, days=7
-               
+
                This parameter helps you perform non-overlapping sequential searches.
 
     Returns:
@@ -455,17 +455,17 @@ async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_send
         - message_count: Number of messages returned (integer)
 
     Examples:
-    
+
     1. Basic usage - get all mentions from the past week:
        ```python
        get_my_mentions_tool()
        ```
-       
+
     2. Check for recent mentions (last 24 hours):
        ```python
        get_my_mentions_tool(days=1)
        ```
-       
+
     3. Check for mentions in a specific space:
        ```python
        get_my_mentions_tool(
@@ -473,7 +473,7 @@ async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_send
            days=3
        )
        ```
-       
+
     4. Check for mentions from previous week (not including current week):
        ```python
        get_my_mentions_tool(
@@ -481,21 +481,21 @@ async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_send
            days=7     # Look at the 7 days before that
        )
        ```
-       
+
     5. Sequential non-overlapping searches for methodical review:
        ```python
        # First check last 3 days
        recent_mentions = get_my_mentions_tool(days=3, offset=0)
-       
+
        # Then check days 4-7
        older_mentions = get_my_mentions_tool(days=4, offset=3)
-       
+
        # Then check days 8-14
        oldest_mentions = get_my_mentions_tool(days=7, offset=7)
        ```
     """
     logger.info(f"Finding mentions in the last {days} days (offset: {offset} days)")
-    
+
     # Get mentions from all spaces or single space
     result = await get_my_mentions(
         days=days,
@@ -505,7 +505,7 @@ async def get_my_mentions_tool(days: int = 7, space_id: str = None, include_send
         page_token=page_token,
         offset=offset
     )
-    
+
     # Add message count if not already present
     if "message_count" not in result:
         result["message_count"] = len(result.get("messages", []))

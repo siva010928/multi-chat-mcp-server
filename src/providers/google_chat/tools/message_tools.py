@@ -8,10 +8,10 @@ from src.providers.google_chat.api.messages import (
     get_message_with_sender_info
 )
 
-from src.mcp_instance import mcp
+from src.providers.google_chat.mcp_instance import mcp, tool
 
 
-@mcp.tool()
+@tool()
 async def send_message_tool(space_name: str, text: str) -> dict:
     print("Registering send_message tool")
 
@@ -29,13 +29,13 @@ async def send_message_tool(space_name: str, text: str) -> dict:
                    Can be either a full resource name (e.g., 'spaces/AAQAtjsc9v4')
                    or just the ID portion ('AAQAtjsc9v4'). If only the ID is provided,
                    it will be automatically prefixed with 'spaces/'.
-                   
+
                    IMPORTANT: You can get space IDs using the get_chat_spaces_tool.
-                   
+
         text: Text content of the message. Can include plain text or limited markdown formatting,
               including bold, italic, strikethrough, and inline code. Supports up to 4,096 characters.
               Emojis (Unicode) are also supported.
-              
+
               FORMATTING TIPS:
               - Use *asterisks* for bold text
               - Use _underscores_ for italic text
@@ -57,9 +57,9 @@ async def send_message_tool(space_name: str, text: str) -> dict:
 
     API Reference:
         https://developers.google.com/chat/api/reference/rest/v1/spaces.messages/create
-        
+
     Examples:
-    
+
     1. Basic message:
        ```python
        send_message_tool(
@@ -67,7 +67,7 @@ async def send_message_tool(space_name: str, text: str) -> dict:
            text="Hello team! This is a simple message."
        )
        ```
-       
+
     2. Message with formatting:
        ```python
        send_message_tool(
@@ -75,7 +75,7 @@ async def send_message_tool(space_name: str, text: str) -> dict:
            text="*Important Update*\n\nThe meeting scheduled for tomorrow has been _rescheduled_ to Friday at 2pm.\n\nPlease update your calendars accordingly."
        )
        ```
-       
+
     3. Technical message with code formatting:
        ```python
        send_message_tool(
@@ -83,7 +83,7 @@ async def send_message_tool(space_name: str, text: str) -> dict:
            text="The API is returning a `404` error when accessing `/api/users`. Please check if the endpoint is correctly configured."
        )
        ```
-       
+
     4. Status update with emoji:
        ```python
        send_message_tool(
@@ -98,7 +98,7 @@ async def send_message_tool(space_name: str, text: str) -> dict:
 
     return await create_message(space_name, text)
 
-# @mcp.tool()
+# @tool()
 # async def send_card_message_tool(space_name: str, text: str, card_title: str, card_description: str = None) -> dict:
 #     """Send a message with a card to a Google Chat space.
 
@@ -139,7 +139,7 @@ async def send_message_tool(space_name: str, text: str) -> dict:
 
 #     return await create_message(space_name, text, [card])
 
-# @mcp.tool()
+# @tool()
 # async def send_interactive_card_tool(
 #     space_name: str,
 #     card_title: str,
@@ -225,7 +225,7 @@ async def send_message_tool(space_name: str, text: str) -> dict:
 #         buttons
 #     )
 
-@mcp.tool()
+@tool()
 async def update_chat_message_tool(message_name: str, new_text: str = None) -> dict:
     """Update an existing message in a Google Chat space.
 
@@ -245,7 +245,7 @@ async def update_chat_message_tool(message_name: str, new_text: str = None) -> d
     return await update_message(message_name, new_text)
 
 
-@mcp.tool()
+@tool()
 async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: str) -> dict:
     """Reply to a message thread in a Google Chat space.
 
@@ -261,30 +261,30 @@ async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: s
                    Can be either a full resource name (e.g., 'spaces/AAQAtjsc9v4')
                    or just the ID portion ('AAQAtjsc9v4'). If only the ID is provided,
                    it will be automatically prefixed with 'spaces/'.
-                   
+
                    IMPORTANT: You can get space IDs using the get_chat_spaces_tool.
-                   
+
         thread_key: The identifier for the thread to reply to. This can be:
                    - A thread key (e.g., 'thread123')
                    - A thread name (e.g., 'spaces/AAQAtjsc9v4/threads/thread123')
                    - A message ID (the system will attempt to find its thread)
-                   
+
                    IMPORTANT: When replying to a message, you can extract the thread_key from 
                    the original message's 'name' field, which has the format:
                    'spaces/{space_id}/messages/{message_id}'
-                   
+
                    THREAD RETRIEVAL STRATEGIES:
                    1. Use search_messages_tool to find messages with specific content
                    2. Extract thread_key from message objects in the search results
                    3. Use that thread_key with this tool to continue the conversation
-                   
+
                    CREATING NEW THREADS VS REPLYING:
                    - To start a new thread, use send_message_tool
                    - To continue an existing thread, use this tool
-                   
+
         text: Text content of the reply. Can include plain text or limited markdown formatting,
               including bold, italic, strikethrough, and inline code. Supports up to 4,096 characters.
-              
+
               FORMATTING TIPS:
               - Use *asterisks* for bold text
               - Use _underscores_ for italic text
@@ -306,9 +306,9 @@ async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: s
 
     API Reference:
         https://developers.google.com/chat/api/reference/rest/v1/spaces.messages/create
-        
+
     Examples:
-    
+
     1. Basic reply to a thread:
        ```python
        reply_to_message_thread_tool(
@@ -317,7 +317,7 @@ async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: s
            text="Thanks for the update! I'll review this today."
        )
        ```
-       
+
     2. Reply using just the message ID:
        ```python
        reply_to_message_thread_tool(
@@ -326,7 +326,7 @@ async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: s
            text="I've completed the task. Here's what I found..."
        )
        ```
-       
+
     3. Reply from search results (workflow):
        ```python
        # First, search for the message you want to reply to
@@ -334,14 +334,14 @@ async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: s
            query="update on project status",
            spaces=["spaces/AAQAtjsc9v4"]
        )
-       
+
        # Get the first message and extract its ID
        if search_results["messages"]:
            message = search_results["messages"][0]
            message_name = message["name"]  # Format: spaces/{space}/messages/{message}
            space_id = message_name.split('/')[1]
            message_id = message_name.split('/')[-1]
-           
+
            # Reply to the thread
            reply_to_message_thread_tool(
                space_name=space_id,
@@ -349,7 +349,7 @@ async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: s
                text="Thanks for the project update. I have a few questions..."
            )
        ```
-       
+
     4. Technical discussion reply with formatted code:
        ```python
        reply_to_message_thread_tool(
@@ -365,7 +365,7 @@ async def reply_to_message_thread_tool(space_name: str, thread_key: str, text: s
     return await reply_to_thread(space_name, thread_key, text)
 
 
-@mcp.tool()
+@tool()
 async def get_space_messages_tool(space_name: str,
                              include_sender_info: bool = False,
                              page_size: int = 25,
@@ -410,61 +410,61 @@ async def get_space_messages_tool(space_name: str,
     Args:
         space_name: The resource name of the space to fetch messages from
                    (string, format: "spaces/{space_id}")
-                   
+
                    IMPORTANT: You can get space IDs using the get_chat_spaces_tool.
-                   
+
         include_sender_info: Whether to include detailed sender information in the returned messages.
                             When true, each message will include a sender_info object with details
                             like email, display_name, and profile_photo. (default: False)
-                            
+
                             Set to True when you need to analyze who sent which messages.
-                            
+
         page_size: Maximum number of messages to return in a single request.
                   Ranges from 1 to 1000. (default: 25, max: 1000)
-                  
+
                   USAGE STRATEGY:
                   - Small values (25-50) for quick checks and better performance
                   - Larger values (100-1000) for comprehensive analysis or extracting full context
-                  
+
         page_token: Page token from a previous request for pagination. Use the nextPageToken
                    from a previous response to get the next page of results.
-                   
+
                    Use this for systematically processing large message histories.
-                   
+
         filter_str: Optional filter string in the format specified by Google Chat API.
                    For example: 'createTime > "2023-04-21T11:30:00-04:00"'
                    See API reference for full filter syntax options.
-                   
+
                    ADVANCED FILTERING:
                    - Date-based: 'createTime > "2023-04-21T11:30:00-04:00"'
                    - Combined filters: 'createTime > "2023-04-21T00:00:00Z" AND createTime < "2023-04-22T00:00:00Z"'
-                   
+
                    Usually not needed as days_window and offset provide simpler date filtering.
-                   
+
         order_by: How messages are ordered, format: "<field> <direction>",
                  e.g., "createTime DESC" (default: "createTime desc" - newest first)
-                 
+
                  OPTIONS:
                  - "createTime desc" (newest first - DEFAULT)
                  - "createTime asc" (oldest first - for chronological analysis)
-                 
+
         show_deleted: Whether to include deleted messages in the results (default: False)
                      Set to True if you need to see messages that were deleted.
-                     
+
         days_window: Number of days to look back for messages (default: 3).
                     This parameter controls the date range for message retrieval.
                     For example, if days_window=3, messages from the last 3 days will be retrieved.
-                    
+
                     SIZING GUIDELINES:
                     - 1-3 days: Recent conversations
                     - 7 days: Weekly review
                     - 30 days: Monthly review
                     - Larger values may impact performance
-                    
+
         offset: Number of days to offset the end date from today (default: 0). 
                For example, if offset=3, the end date will be 3 days before today,
                and with days_window=3, messages from 6 to 3 days ago will be retrieved.
-               
+
                INCREMENTAL SEARCH STRATEGY:
                To efficiently analyze historical messages in chunks:
                1. Start with recent messages: days_window=3, offset=0
@@ -488,9 +488,9 @@ async def get_space_messages_tool(space_name: str,
 
     Raises:
         ValueError: If the date format is invalid or dates are in wrong order
-        
+
     Examples:
-    
+
     1. Get recent messages from a space:
        ```python
        get_space_messages_tool(
@@ -498,7 +498,7 @@ async def get_space_messages_tool(space_name: str,
            page_size=50
        )
        ```
-       
+
     2. Get messages with detailed sender information:
        ```python
        get_space_messages_tool(
@@ -507,7 +507,7 @@ async def get_space_messages_tool(space_name: str,
            page_size=50
        )
        ```
-       
+
     3. Get messages from one week ago (non-overlapping with recent messages):
        ```python
        get_space_messages_tool(
@@ -517,7 +517,7 @@ async def get_space_messages_tool(space_name: str,
            page_size=100
        )
        ```
-       
+
     4. Retrieve messages chronologically (oldest first):
        ```python
        get_space_messages_tool(
@@ -527,7 +527,7 @@ async def get_space_messages_tool(space_name: str,
            page_size=100
        )
        ```
-       
+
     5. Pagination example for handling large message histories:
        ```python
        # Get first page of messages
@@ -535,10 +535,10 @@ async def get_space_messages_tool(space_name: str,
            space_name="spaces/AAQAtjsc9v4",
            page_size=100
        )
-       
+
        # Process messages from first page
        messages = first_page.get("messages", [])
-       
+
        # If there are more pages, get the next page
        next_page_token = first_page.get("nextPageToken")
        if next_page_token:
@@ -577,13 +577,13 @@ async def get_space_messages_tool(space_name: str,
 
     # Add source field for identification
     result["source"] = "get_space_messages"
-    
+
     # Add message count to the result
     result["message_count"] = len(result.get("messages", []))
-    
+
     return result
 
-@mcp.tool()
+@tool()
 async def get_chat_message_tool(message_name: str, include_sender_info: bool = False) -> dict:
     """Get a specific message by its resource name.
 
@@ -627,7 +627,7 @@ async def get_chat_message_tool(message_name: str, include_sender_info: bool = F
     return await get_message(message_name, include_sender_info)
 
 
-@mcp.tool()
+@tool()
 async def delete_chat_message_tool(message_name: str) -> dict:
     """Delete a message by its resource name.
 
@@ -646,7 +646,7 @@ async def delete_chat_message_tool(message_name: str) -> dict:
     return await delete_message(message_name)
 
 
-@mcp.tool()
+@tool()
 async def get_message_with_sender_info_tool(message_name: str) -> dict:
     """Get a specific message with additional sender information.
 
@@ -689,7 +689,7 @@ async def get_message_with_sender_info_tool(message_name: str) -> dict:
     return await get_message_with_sender_info(message_name)
 
 
-@mcp.tool()
+@tool()
 async def list_messages_with_sender_info_tool(space_name: str,
                                          limit: int = 10,
                                          page_token: str = None,
@@ -761,7 +761,7 @@ async def list_messages_with_sender_info_tool(space_name: str,
         days_window=days_window,
         offset=offset
     )
-    
+
     # Add message count if not already present
     if "message_count" not in result:
         result["message_count"] = len(result.get("messages", []))
@@ -769,7 +769,7 @@ async def list_messages_with_sender_info_tool(space_name: str,
     return result
 
 
-@mcp.tool()
+@tool()
 async def add_emoji_reaction_tool(message_name: str, emoji: str) -> dict:
     """Add an emoji reaction to a message.
 
@@ -785,7 +785,7 @@ async def add_emoji_reaction_tool(message_name: str, emoji: str) -> dict:
     return await add_emoji_reaction(message_name, emoji)
 
 
-@mcp.tool()
+@tool()
 async def upload_attachment_tool(space_name: str, file_path: str, message_text: str = None) -> dict:
     """Upload a file attachment to a Google Chat space.
 
@@ -803,7 +803,7 @@ async def upload_attachment_tool(space_name: str, file_path: str, message_text: 
     return await upload_attachment(space_name, file_path, message_text)
 
 
-@mcp.tool()
+@tool()
 async def batch_send_messages_tool(messages: list[dict]) -> dict:
     """Send multiple messages in batch to different spaces.
 
@@ -823,7 +823,7 @@ async def batch_send_messages_tool(messages: list[dict]) -> dict:
     return await batch_send_messages(messages)
 
 
-@mcp.tool()
+@tool()
 async def send_file_message_tool(space_name: str, file_path: str, message_text: str = None) -> dict:
     """Send a message with file contents as a workaround for attachments.
 
@@ -841,7 +841,7 @@ async def send_file_message_tool(space_name: str, file_path: str, message_text: 
     return await send_file_message(space_name, file_path, message_text)
 
 
-@mcp.tool()
+@tool()
 async def send_file_content_tool(space_name: str, file_path: str = None) -> dict:
     """Send file content as a message (workaround for attachments).
 

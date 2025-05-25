@@ -82,7 +82,7 @@ async def test_live_exact_match(test_space):
 async def test_live_mentions_summary(test_space):
     print("\n📣 Live Mentions Summary")
     try:
-        result = await get_my_mentions(days=7, space_id=test_space)
+        result = await get_my_mentions(days=2, spaces=[test_space])
         assert "messages" in result
         print(result["messages"])
         assert len(result["messages"]) > 0, "Expected at least one recent mention"

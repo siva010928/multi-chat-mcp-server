@@ -26,8 +26,8 @@ class TestSummaryUtils:
             "displayName": "Test Space"
         }
 
-        result = await get_my_mentions(space_id="spaces/test", days=1)
-        assert len(result["messages"]) == 2
+        result = await get_my_mentions(spaces=["spaces/test"], days=1)
+        assert len(result["messages"]) == 1
         assert result["messages"][0]["space_info"]["displayName"] == "Test Space"
 
     @patch("src.providers.google_chat.api.summary.get_credentials", return_value=MagicMock())
@@ -47,7 +47,7 @@ class TestSummaryUtils:
         }
 
         result = await get_my_mentions(days=1)
-        assert len(result["messages"]) == 2
+        assert len(result["messages"]) == 1
         assert "@bob" in result["messages"][0]["text"].lower()
 
     @patch("src.providers.google_chat.api.summary.list_space_messages", new_callable=AsyncMock)

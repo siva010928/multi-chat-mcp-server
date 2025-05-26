@@ -106,12 +106,6 @@ You can fork this project to:
 * Add tools that interface with your organization’s infrastructure (e.g., Jira, GitHub, AWS)
 
 
-### ✅ **Google Chat MCP Server – Real-world Usage Showcase**
-
-Refactored for **logical storytelling**, **developer clarity**, and **progressive AI capability reveal**.
-
----
-
 ## 🧩 Google Chat MCP Server – Real-world Usage Showcase
 
 These walkthroughs show how an AI assistant, powered by this MCP server, evolves from a passive tool into an active collaborator — debugging issues, coordinating teams, syncing scripts, and proactively unblocking developers.

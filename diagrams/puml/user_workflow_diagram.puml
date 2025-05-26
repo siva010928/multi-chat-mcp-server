@@ -53,7 +53,7 @@ note right
       "command": "uv",
       "args": [
         "--directory",
-        "/path/to/google-chat-mcp-server",
+        "/path/to/multi-chat-mcp-server",
         "run",
         "-m",
         "src.server",

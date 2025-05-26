@@ -31,8 +31,8 @@ Get up and running with Google Chat MCP in just a few minutes:
 3. **Installation**:
    ```bash
    # Clone repository and enter directory
-   git clone https://github.com/siva010928/google-chat-mcp-server.git
-   cd google-chat-mcp-server
+   git clone https://github.com/siva010928/multi-chat-mcp-server.git
+   cd multi-chat-mcp-server
    
    # Create virtual environment
    python -m venv .venv
@@ -81,7 +81,7 @@ Get up and running with Google Chat MCP in just a few minutes:
          "command": "uv",
          "args": [
            "--directory",
-           "/path/to/google-chat-mcp-server",
+           "/path/to/multi-chat-mcp-server",
            "run",
            "-m", 
            "src.server",
@@ -92,7 +92,7 @@ Get up and running with Google Chat MCP in just a few minutes:
      }
    }
    ```
-   - Replace `/path/to/google-chat-mcp-server` with the absolute path to your repository
+   - Replace `/path/to/multi-chat-mcp-server` with the absolute path to your repository
 
 7. **Test Integration**:
    - Open Cursor and use the Google Chat MCP tools
@@ -133,8 +133,8 @@ This section provides detailed instructions for setting up and configuring the G
 1. Clone this repository:
 
 ```bash
-git clone https://github.com/siva010928/google-chat-mcp-server.git
-cd google-chat-mcp-server
+git clone https://github.com/siva010928/multi-chat-mcp-server.git
+cd multi-chat-mcp-server
 ```
 
 2. Create a virtual environment and install requirements:
@@ -210,7 +210,7 @@ Add the Google Chat MCP server to your MCP client's configuration. For Cursor, e
       "command": "uv",
       "args": [
         "--directory",
-        "/path/to/google-chat-mcp-server",
+        "/path/to/multi-chat-mcp-server",
         "run",
         "-m", 
         "src.server",
@@ -222,7 +222,7 @@ Add the Google Chat MCP server to your MCP client's configuration. For Cursor, e
 }
 ```
 
-Replace `/path/to/google-chat-mcp-server` with the absolute path to your repository.
+Replace `/path/to/multi-chat-mcp-server` with the absolute path to your repository.
 
 > **IMPORTANT**: 
 > - For MCP client integration with Cursor, use `uv` as shown above
@@ -246,7 +246,7 @@ providers:
 
 **Directory Structure:**
 ```
-google-chat-mcp-server-main/
+multi-chat-mcp-server/
 ├── diagrams/                # SVG diagrams and source files
 ├── docs/                    # Documentation files
 ├── src/

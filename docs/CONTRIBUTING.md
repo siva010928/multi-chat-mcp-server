@@ -41,15 +41,17 @@ Please be respectful and considerate of others when participating in this projec
 
 ### Testing
 
-1. Write tests for new features or bug fixes
-2. Run the test suite to ensure all tests pass:
+1. We recommend writing tests for new features or bug fixes
+2. If you choose to include tests, run the test suite to ensure they pass:
    ```bash
    python -m pytest
    ```
-3. For provider-specific tests:
+3. For provider-specific tests (optional but recommended):
    ```bash
    python -m pytest src/providers/your_provider
    ```
+
+Testing is flexible and not strictly enforced, but it helps ensure the stability and reliability of your contributions.
 
 ### Submitting Changes
 
@@ -87,8 +89,10 @@ If you want to add support for a new chat platform:
    - Authentication flow
    - API client methods
    - MCP tools
-5. **Write tests** for your implementation
+5. **Write tests** for your implementation (recommended)
 6. **Document** your provider's features and requirements
+
+For a detailed walkthrough of adding a new provider, please refer to [docs/PROVIDER_SPECIFIC_DEVELOPMENT_WALKTHROUGH.md](docs/PROVIDER_SPECIFIC_DEVELOPMENT_WALKTHROUGH.md).
 
 ## Documentation
 

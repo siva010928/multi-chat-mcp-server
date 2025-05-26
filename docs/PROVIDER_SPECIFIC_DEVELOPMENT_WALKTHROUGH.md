@@ -344,7 +344,7 @@ async def send_chat_message(room_id: str, message: str) -> dict:
 
 When implementing tools, follow these common patterns:
 
-**Tool Decarotor** Each tool must be decorated using @tool() from your provider’s mcp_instance.py.
+**Tool Decarotor** Each tool must be decorated using @tool() from your provider's mcp_instance.py.
 This is critical because:
 
 ✅ It registers the tool with the local FastMCP instance
@@ -448,3 +448,93 @@ from src.providers.chatplatform.api.auth import get_credentials
 ```
 
 This design ensures your provider works seamlessly with any chat platform's OAuth 2.0 flow while giving you complete flexibility for your specific use cases and API structure.
+
+## Quick Start Guide
+
+### Prerequisites
+
+Before getting started with provider development, make sure you have the following prerequisites installed:
+
+1. **Python 3.8+**: Required for running the MCP server
+2. **uv**: Recommended package manager for MCP client integration
+   ```bash
+   pip install uv
+   ```
+   
+   Using `uv` offers several advantages over standard Python virtual environments:
+   - Faster dependency resolution and installation
+   - Better caching of packages
+   - Improved reproducibility with lockfiles
+   - Enhanced compatibility with MCP clients
+   
+   While standard Python/pip can work for MCP client integration, `uv` is highly recommended for a smoother development experience and better performance.
+
+3. **Git**: For version control
+4. **OAuth Credentials**: From the chat platform you're integrating with
+
+### Development Setup
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/yourusername/multi-chat-mcp-server.git
+   cd multi-chat-mcp-server
+   ```
+
+2. **Create and activate a virtual environment**:
+   ```bash
+   # Using uv (recommended)
+   uv venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   
+   # Or using standard Python
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   # Using uv (recommended)
+   uv pip install -r requirements.txt
+   
+   # Or using standard pip
+   pip install -r requirements.txt
+   ```
+
+4. **Copy your OAuth credentials**:
+   Save your OAuth credentials as `credentials.json` in your provider directory.
+
+### Test Integration
+
+After developing your provider, you can test it with:
+
+1. **Any MCP client**: Connect your MCP client to the server
+2. **Claude or other AI assistants in Cursor**: Test with simple commands like:
+   - "Catch me up with my team space"
+   - "Update my team regarding this update"
+   - "Find messages about [topic] in my chat"
+
+This conversational interaction is the most effective way to test your provider's functionality, as it simulates how it will be used in real applications.
+
+## Detailed Setup
+
+### Prerequisites
+
+1. **Python 3.8+**: Required for running the MCP server
+2. **uv**: Recommended for MCP client integration
+   
+   `uv` is a Python packaging management tool that offers significant advantages for MCP client integration:
+   - **Performance**: Up to 10-100x faster than pip for dependency resolution
+   - **Reliability**: Better handling of complex dependency graphs
+   - **Reproducibility**: Advanced lockfile capabilities
+   - **Isolation**: Improved environment isolation to prevent conflicts
+   - **Compatibility**: Enhanced compatibility with MCP clients and agent tools
+   
+   Install uv with:
+   ```bash
+   pip install uv
+   ```
+
+3. **OAuth Credentials**: Required for authenticating with your chat platform
+   - Client ID
+   - Client Secret
+   - Redirect URI (usually http://localhost:8000/auth/callback)

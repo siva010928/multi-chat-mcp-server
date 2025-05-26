@@ -52,7 +52,7 @@ Get up and running with Google Chat MCP in just a few minutes:
    > the UV package manager will be used instead (as configured in step 6).
 
 4. **Configure paths**:
-   - Check `provider-config.yaml` to ensure paths match your setup:
+   - Check `provider-config.yaml` in root to ensure paths match your setup:
    ```yaml
    providers:
      google_chat:
@@ -267,7 +267,7 @@ multi-chat-mcp-server/
 ├── provider-config.yaml     # Provider configuration file
 ```
 
-> **Note**: After completing this setup, you can close this project. The MCP client (e.g., Cursor) will automatically start and manage the server process when you use Google Chat MCP tools in your AI assistant.
+> **Note**: After completing this setup, you can close this project. The MCP client (e.g., Cursor) will automatically start and manage the server process when you use trigger Google Chat MCP tools by requesting your AI assistant via convo.
 
 ## Testing
 
@@ -281,7 +281,6 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Run all tests with coverage report
 python -m pytest
-
 
 # Run tests with detailed coverage information
 python -m pytest src/providers/google_chat/tools/tests/ --cov=src.tools --cov-report=term-missing -v
@@ -318,8 +317,6 @@ python -m pytest --cov=src
 # Run tests with detailed coverage information
 python -m pytest src/providers/google_chat/tools/tests/ --cov=src.tools --cov-report=term-missing -v
 ```
-
-See `docs/TEST_IMPROVEMENTS.md` for detailed information about test coverage and future improvements.
 
 ## Available Tools
 

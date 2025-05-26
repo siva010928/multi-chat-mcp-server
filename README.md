@@ -297,21 +297,29 @@ This project follows a modular architecture with these key components:
 - Improved file attachment handling
 - User interface for configuration
 
-## 📄 License
+## 📄 License & Ownership
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+### License
 
-## 🤝 Contributing
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Contributions to improve or extend this project are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on how to contribute.
+### Copyright
 
-Some key points:
+Copyright (c) 2025 Sivaprakash Kumar. All rights reserved.
 
-- Use GitHub Issues for bug reports and feature requests
-- Fork the repository and create a feature branch for your work
-- Run tests with `python -m pytest` before submitting a PR
-- Follow existing code style and patterns
-- Document your changes
+While this is an open-source project that welcomes contributions, all copyright and ownership rights remain with Sivaprakash Kumar. See the [COPYRIGHT](COPYRIGHT) file for more information.
+
+### Contributing
+
+Contributions are welcome! By submitting a contribution, you agree to our [Contributor License Agreement](CONTRIBUTOR_LICENSE_AGREEMENT.md), which ensures that:
+
+1. Contributions become part of the codebase under the same MIT license
+2. Copyright ownership of all contributions is assigned to Sivaprakash Kumar
+3. You have the legal right to contribute the code
+
+Please read the full CLA before contributing.
+
+## 📝 Documentation
 
 For information on adding support for new providers, see the [Provider Development Guide](PROVIDER_SPECIFIC_DEVELOPMENT_DEMO.md).
 

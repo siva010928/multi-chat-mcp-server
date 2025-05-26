@@ -13,7 +13,7 @@ This document provides detailed instructions for integrating the Google Chat MCP
       "command": "uv",
       "args": [
         "--directory",
-        "/path/to/google-chat-mcp-server",
+        "/path/to/multi-chat-mcp-server",
         "run",
         "-m", 
         "src.server",
@@ -25,7 +25,7 @@ This document provides detailed instructions for integrating the Google Chat MCP
 }
 ```
 
-Replace `/path/to/google-chat-mcp-server` with the absolute path to your repository.
+Replace `/path/to/multi-chat-mcp-server` with the absolute path to your repository.
 
 > **Note**: While local development can use Python directly, MCP clients like Cursor work best with UV for dependency isolation.
 

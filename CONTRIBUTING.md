@@ -16,8 +16,8 @@ Please be respectful and considerate of others when participating in this projec
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/YOUR-USERNAME/google-chat-mcp-server.git
-   cd google-chat-mcp-server-main
+   git clone https://github.com/YOUR-USERNAME/multi-chat-mcp-server.git
+   cd multi-chat-mcp-server
    ```
 3. **Set up the development environment**:
    ```bash

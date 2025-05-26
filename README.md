@@ -45,7 +45,7 @@ These use cases demonstrate how the MCP integration goes beyond simple message s
 ## 📁 Project Structure
 
 ```
-google-chat-mcp-server-main/
+multi-chat-mcp-server/
 ├── docs/                      # Documentation files
 ├── src/
 │   ├── mcp_core/              # Core MCP functionality
@@ -88,8 +88,8 @@ google-chat-mcp-server-main/
 1. **Clone this repository**:
 
 ```bash
-git clone https://github.com/siva010928/google-chat-mcp-server.git
-cd google-chat-mcp-server-main
+git clone https://github.com/siva010928/multi-chat-mcp-server.git
+cd multi-chat-mcp-server
 ```
 
 2. **Install dependencies**:
@@ -320,7 +320,7 @@ Configure your MCP client (e.g., Cursor) by editing the configuration file:
     "google_chat": {
       "command": "uv",
       "args": [
-        "--directory", "/path/to/google-chat-mcp-server-main",
+        "--directory", "/path/to/multi-chat-mcp-server",
         "run", "-m", "src.server",
         "--provider", "google_chat"
       ]
@@ -328,7 +328,7 @@ Configure your MCP client (e.g., Cursor) by editing the configuration file:
     "slack": {
       "command": "uv",
       "args": [
-        "--directory", "/path/to/google-chat-mcp-server-main",
+        "--directory", "/path/to/multi-chat-mcp-server",
         "run", "-m", "src.server",
         "--provider", "slack"
       ]

@@ -483,96 +483,135 @@ python -m pytest src/providers/google_chat/tools/tests/ --cov=src.tools --cov-re
 
 For detailed instructions on integrating this MCP server with Cursor, including custom rules for team communication and message handling, see [CURSOR_INTEGRATION.md](CURSOR_INTEGRATION.md).
 
-## Demo Screenshots Gallery
+## 🧩 Google Chat MCP Server – Real-world Usage Showcase
 
-### Setup and Integration
+These walkthroughs show how an AI assistant, powered by this MCP server, evolves from a passive tool into an active collaborator — debugging issues, coordinating teams, syncing scripts, and proactively unblocking developers.
 
-<div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/how_google_chat_mcp_tools_registered_with_mcp_client.png" width="80%" alt="MCP tools registration"/>
-  <p><i>Google Chat MCP tools registered with the MCP client</i></p>
-</div>
+---
 
-### Team Communication
+### 🛠️ Tool Setup & Initialization
 
 <div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/how_i_asked_my_team_to_share_aws-setup.sh_scrip_in_google_chat_space.png" width="80%" alt="Requesting files from team"/>
-  <p><i>Requesting team members to share files in Google Chat</i></p>
+  <img src="../../../google_chat_mcp_client_demo_images/how_google_chat_mcp_tools_registered_with_mcp_client.png" width="80%" alt="Scene 1: Tool Registration with Google Chat"/>
+  <p><i><strong>Scene 1: Tool Registration with Google Chat</strong></i></p>
 </div>
+
+**The Scenario:** Connecting MCP client to Google Chat.
+
+**What's Happening:** The AI assistant is granted access to all Google Chat tools (e.g., send, search, summarize, attach, reply).
+
+**Why it Matters:** The assistant can now *act* inside Google Chat, not just observe.
+
+---
+
+### 🧯 Debugging & Resolution (Docker Example)
 
 <div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/how_i_asked_to_summarize_my_team_space_today_about_what_is_hapening_like_a_quick_updates.png" width="80%" alt="Summarizing team space"/>
-  <p><i>Getting a summary of recent activity in the team space</i></p>
+  <img src="../../../google_chat_mcp_client_demo_images/how_i_asked_mcp_client_to_share_my_error_along_with_logs_to_get_help_from_my_team.png" width="80%" alt="Scene 8: Broadcasting an Error to the Team"/>
+  <p><i><strong>Scene 2: Broadcasting an Error to the Team</strong></i></p>
 </div>
+
+**What's Happening:** A developer asks the AI to share Docker error logs in chat, prompting real-time team help.
 
 <div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/how_i_asked_mcp_client_to_share_my_error_along_with_logs_to_get_help_from_my_team.png" width="80%" alt="Sharing errors with team"/>
-  <p><i>Sharing error logs with the team to get assistance</i></p>
+  <img src="../../../google_chat_mcp_client_demo_images/proof_that_team_member_replied_with_instructions_to_fix_the_errors_i_shared.png" width="80%" alt="Scene 3: Receiving a Fix from a Teammate"/>
+  <p><i><strong>Scene 3: Team Responds with a Fix</strong></i></p>
 </div>
 
-### User Mentions and Notifications
+**Next Step:** A teammate replies with a Dockerfile fix (`COPY requirements.txt .`).
 
 <div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/how_mcp_client(cursor)_get_my_mentions_from_team_chat_space.png" width="80%" alt="Getting mentions"/>
-  <p><i>Retrieving mentions from team chat spaces</i></p>
+  <img src="../../../google_chat_mcp_client_demo_images/how_i_asked_mcp_client_to_check_with_response_of_my_error_issues_which_i_shared_recently_and_how_i_asked_to_follow_instructions_of_the_response_from_my_team_to_fix_the_issue.png" width="80%" alt="Scene 4: Agent Applies Suggested Fix"/>
+  <p><i><strong>Scene 4: Agent Applies the Fix</strong></i></p>
 </div>
+
+**Automation Moment:** The AI assistant edits the Dockerfile per the advice — no manual effort.
 
 <div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/how_our_messages_have_our_mentions_in_google_chat_space.png" width="80%" alt="Viewing mentions"/>
-  <p><i>Viewing message mentions in Google Chat</i></p>
+  <img src="../../../google_chat_mcp_client_demo_images/how_mcp_client_properly_followed_my_team_member_instructions_for_the_concern_i_shared.png" width="80%" alt="Scene 5: Verifying the Fix"/>
+  <p><i><strong>Scene 5: Verifying the Fix</strong></i></p>
 </div>
 
-### Search Capabilities
+**Wrap-up:** It verifies the change, confirms `requirements.txt` exists — and the error should be resolved.
+
+---
+
+### 📦 Dependency & Script Sync
 
 <div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/how_mcp_client_search_for_any_concerns_in_our_chat_space_related_to_our_project_specifcally_to_assist_them_and_well_it_understand_the_concerns_and_assist_them.png" width="80%" alt="Searching for concerns"/>
-  <p><i>Searching for project concerns in chat spaces</i></p>
+  <img src="../../../google_chat_mcp_client_demo_images/proof_that_mcp_client_again_3rd_time_properly_assisted_the_concern_i_asked_to_then_it_properly_provided_my_local_latest_requirements_file_to_someone_who_facing_the_issues_with_requirements.png" width="80%" alt="Scene 6: Sharing requirements.txt"/>
+  <p><i><strong>Scene 6: Sharing `requirements.txt`</strong></i></p>
 </div>
+
+**Scenario:** I have requested my team requests to share a working `requirements.txt`.
+
+**Response:** One of my teammate shared their working `requirements.txt`.
 
 <div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/how_mcp_client_again_search_for_any_concerns_in_our_chat_space_related_to_our_project_specifcally_to_assist_them_and_well_it_understand_the_concerns_and_assist_them.png" width="80%" alt="Advanced search capabilities"/>
-  <p><i>Enhanced search with contextual understanding</i></p>
+  <img src="../../../google_chat_mcp_client_demo_images/how_i_asked_mcp_client_to_pull_the_lastest_requirements_and_modifying_with_the_local_one_that_i_asked_for_in_team_space_after_someone_shared_the_requirements_file.png" width="80%" alt="Scene 7: Syncing requirements.txt"/>
+  <p><i><strong>Scene 7: Syncing Local Copy</strong></i></p>
 </div>
 
-### File Handling and Sharing
+**Developer POV:** The AI reviewed the thread and based on my instruction, it updated my local `requirements.txt` with the one that was shared
+
+---
 
 <div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/how_mcp_client_get_aws-script-from-team-space-and-compare-it-with-local-one-after-team-member-replied-to-my-previous-requesting-aws-setup-script.png" width="80%" alt="Getting and comparing files"/>
-  <p><i>Retrieving and comparing files from team chat</i></p>
+  <img src="../../../google_chat_mcp_client_demo_images/how_i_asked_my_team_to_share_aws-setup.sh_scrip_in_google_chat_space.png" width="80%" alt="Scene 8: Requesting AWS Setup Script"/>
+  <p><i><strong>Scene 8: Requesting AWS Setup Script</strong></i></p>
 </div>
+
+**Scenario:** You ask your team for a shared `aws-setup.sh` script.
 
 <div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/how_i_asked_mcp_client_to_pull_the_lastest_requirements_and_modifying_with_the_local_one_that_i_asked_for_in_team_space_after_someone_shared_the_requirements_file.png" width="80%" alt="Syncing requirement files"/>
-  <p><i>Updating local files with latest versions shared in chat</i></p>
+  <img src="../../../google_chat_mcp_client_demo_images/how_mcp_client_get_aws-script-from-team-space-and-compare-it-with-local-one-after-team-member-replied-to-my-previous-requesting-aws-setup-script.png" width="80%" alt="Scene 9: Script Consistency Check"/>
+  <p><i><strong>Scene 9: Script Consistency Check</strong></i></p>
 </div>
 
-### Collaborative Problem Solving
+**Developer POV:** The AI reviewed the thread and based on my instruction, it compares the team’s script with your local version — ensuring you're in sync.
 
-<div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/proof_that_team_member_replied_with_instructions_to_fix_the_errors_i_shared.png" width="80%" alt="Team member instructions"/>
-  <p><i>Team members providing instructions to fix errors</i></p>
-</div>
+---
 
-<div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/how_i_asked_mcp_client_to_check_with_response_of_my_error_issues_which_i_shared_recently_and_how_i_asked_to_follow_instructions_of_the_response_from_my_team_to_fix_the_issue.png" width="80%" alt="Following error fixing instructions"/>
-  <p><i>AI assistant following team instructions to fix errors</i></p>
-</div>
+### 👀 Team Coordination & Catch-Up
 
 <div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/how_mcp_client_properly_followed_my_team_member_instructions_for_the_concern_i_shared.png" width="80%" alt="Successfully implementing fixes"/>
-  <p><i>Successfully implementing fixes based on team instructions</i></p>
+  <img src="../../../google_chat_mcp_client_demo_images/how_i_asked_to_summarize_my_team_space_today_about_what_is_hapening_like_a_quick_updates.png" width="80%" alt="Scene 10: Summarizing Team Activity"/>
+  <p><i><strong>Scene 10: Summarizing Team Activity</strong></i></p>
 </div>
 
-<div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/proof_that_mcp_client_properly_assisted_the_concern_i_asked_to.png" width="80%" alt="Verifying issue resolution"/>
-  <p><i>Verification of successfully resolving team concerns</i></p>
-</div>
+**Context:** You’ve been away. What’s new?
+
+**AI Response:** The assistant summarizes key activity in your space: questions, PRs, shared files, blockers.
 
 <div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/proof_that_mcp_client_again_properly_assisted_the_concern_i_asked_to.png" width="80%" alt="Additional verification"/>
-  <p><i>Additional proof of successfully addressing team concerns</i></p>
+  <img src="../../../google_chat_mcp_client_demo_images/how_mcp_client(cursor)_get_my_mentions_from_team_chat_space.png" width="80%" alt="Scene 11: Catching Up on Mentions"/>
+  <p><i><strong>Scene 11: Catching Up on Mentions</strong></i></p>
 </div>
 
+**Missed a ping?** The AI scans for all mentions and surfaces conversations you were tagged in.
+
+---
+
+### 🔍 AI-Powered Problem Solving from Team Chat Context
+
 <div align="center">
-  <img src="../../../google_chat_mcp_client_demo_images/proof_that_mcp_client_again_3rd_time_properly_assisted_the_concern_i_asked_to_then_it_properly_provided_my_local_latest_requirements_file_to_someone_who_facing_the_issues_with_requirements.png" width="80%" alt="Sharing solutions with other team members"/>
-  <p><i>Sharing solutions with other team members facing similar issues</i></p>
+  <img src="../../../google_chat_mcp_client_demo_images/how_mcp_client_again_search_for_any_concerns_in_our_chat_space_related_to_our_project_specifcally_to_assist_them_and_well_it_understand_the_concerns_and_assist_them.png" width="80%" alt="Scene 12: AI Scanning Team Chat for Problems"/>
+  <p><i><strong>Scene 12: AI Scanning Team Chat for Problems</strong></i></p>
 </div>
+
+**The Scenario:** A developer explicitly asks the AI assistant to help resolve open concerns mentioned by the team in the chat space.
+
+**What's Happening:** The AI scans recent chat messages, identifies technical questions, missing files, and potential blockers related to the project, and prepares to assist.
+
+**Developer Perspective:** The agent isn't just reactive — it understands team context and can search for unresolved issues when prompted.
+
+<div align="center">
+  <img src="../../../google_chat_mcp_client_demo_images/proof_that_mcp_client_properly_assisted_the_concern_i_asked_to.png" width="80%" alt="Scene 13: AI Finds the Missing File Path"/>
+  <p><i><strong>Scene 13: AI Finds the Missing File Path</strong></i></p>
+</div>
+
+**Example Use Case:** A teammate mentioned they couldn’t find `ReviewForm.js`.
+
+**AI Response:** The agent searches the local repo, finds the correct path, and replies directly in the chat thread.
+
+**Why it Matters:** Instead of waiting for someone to respond, the AI assistant unblocks teammates in real-time with accurate, repo-aware answers — making onboarding and collaboration faster and smoother.

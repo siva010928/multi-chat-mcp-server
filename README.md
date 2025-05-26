@@ -280,7 +280,7 @@ src/providers/your_provider/
 4. **Register tools**:
    - Use the provided tool decorator to register your tools
 
-For detailed instructions, see the [Provider Development Guide](docs/PROVIDER_SPECIFIC_DEVELOPMENT_DEMO.md).
+For detailed instructions, see the [Provider Development Guide](docs/PROVIDER_SPECIFIC_DEVELOPMENT_WALKTHROUGH).
 
 ### Recommended Provider Directory Structure
 
@@ -337,17 +337,99 @@ Configure your MCP client (e.g., Cursor) by editing the configuration file:
 }
 ```
 
-## 🧪 Testing
+## Demo Screenshots Gallery using google chat mcp toolsets in cursor
 
-Run tests using pytest:
+### Setup and Integration
 
-```bash
-# Run all tests
-pytest
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_google_chat_mcp_tools_registered_with_mcp_client.png" width="80%" alt="MCP tools registration"/>
+  <p><i>Google Chat MCP tools registered with the MCP client</i></p>
+</div>
 
-# Run tests for a specific provider
-pytest src/providers/google_chat
-```
+### Team Communication
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_i_asked_my_team_to_share_aws-setup.sh_scrip_in_google_chat_space.png" width="80%" alt="Requesting files from team"/>
+  <p><i>Requesting team members to share files in Google Chat</i></p>
+</div>
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_i_asked_to_summarize_my_team_space_today_about_what_is_hapening_like_a_quick_updates.png" width="80%" alt="Summarizing team space"/>
+  <p><i>Getting a summary of recent activity in the team space</i></p>
+</div>
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_i_asked_mcp_client_to_share_my_error_along_with_logs_to_get_help_from_my_team.png" width="80%" alt="Sharing errors with team"/>
+  <p><i>Sharing error logs with the team to get assistance</i></p>
+</div>
+
+### User Mentions and Notifications
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_mcp_client(cursor)_get_my_mentions_from_team_chat_space.png" width="80%" alt="Getting mentions"/>
+  <p><i>Retrieving mentions from team chat spaces</i></p>
+</div>
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_our_messages_have_our_mentions_in_google_chat_space.png" width="80%" alt="Viewing mentions"/>
+  <p><i>Viewing message mentions in Google Chat</i></p>
+</div>
+
+### Search Capabilities
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_mcp_client_search_for_any_concerns_in_our_chat_space_related_to_our_project_specifcally_to_assist_them_and_well_it_understand_the_concerns_and_assist_them.png" width="80%" alt="Searching for concerns"/>
+  <p><i>Searching for project concerns in chat spaces</i></p>
+</div>
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_mcp_client_again_search_for_any_concerns_in_our_chat_space_related_to_our_project_specifcally_to_assist_them_and_well_it_understand_the_concerns_and_assist_them.png" width="80%" alt="Advanced search capabilities"/>
+  <p><i>Enhanced search with contextual understanding</i></p>
+</div>
+
+### File Handling and Sharing
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_mcp_client_get_aws-script-from-team-space-and-compare-it-with-local-one-after-team-member-replied-to-my-previous-requesting-aws-setup-script.png" width="80%" alt="Getting and comparing files"/>
+  <p><i>Retrieving and comparing files from team chat</i></p>
+</div>
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_i_asked_mcp_client_to_pull_the_lastest_requirements_and_modifying_with_the_local_one_that_i_asked_for_in_team_space_after_someone_shared_the_requirements_file.png" width="80%" alt="Syncing requirement files"/>
+  <p><i>Updating local files with latest versions shared in chat</i></p>
+</div>
+
+### Collaborative Problem Solving
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/proof_that_team_member_replied_with_instructions_to_fix_the_errors_i_shared.png" width="80%" alt="Team member instructions"/>
+  <p><i>Team members providing instructions to fix errors</i></p>
+</div>
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_i_asked_mcp_client_to_check_with_response_of_my_error_issues_which_i_shared_recently_and_how_i_asked_to_follow_instructions_of_the_response_from_my_team_to_fix_the_issue.png" width="80%" alt="Following error fixing instructions"/>
+  <p><i>AI assistant following team instructions to fix errors</i></p>
+</div>
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_mcp_client_properly_followed_my_team_member_instructions_for_the_concern_i_shared.png" width="80%" alt="Successfully implementing fixes"/>
+  <p><i>Successfully implementing fixes based on team instructions</i></p>
+</div>
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/proof_that_mcp_client_properly_assisted_the_concern_i_asked_to.png" width="80%" alt="Verifying issue resolution"/>
+  <p><i>Verification of successfully resolving team concerns</i></p>
+</div>
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/proof_that_mcp_client_again_properly_assisted_the_concern_i_asked_to.png" width="80%" alt="Additional verification"/>
+  <p><i>Additional proof of successfully addressing team concerns</i></p>
+</div>
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/proof_that_mcp_client_again_3rd_time_properly_assisted_the_concern_i_asked_to_then_it_properly_provided_my_local_latest_requirements_file_to_someone_who_facing_the_issues_with_requirements.png" width="80%" alt="Sharing solutions with other team members"/>
+  <p><i>Sharing solutions with other team members facing similar issues</i></p>
+</div>
 
 ## 📚 Architecture & Documentation
 
@@ -396,7 +478,7 @@ Please read the full CLA before contributing.
 
 ## 📝 Documentation
 
-For information on adding support for new providers or extending the Google Chat MCP functionality, see the [Provider Development Guide](docs/PROVIDER_SPECIFIC_DEVELOPMENT_DEMO.md).
+For information on adding support for new providers or extending the Google Chat MCP functionality, see the [Provider Development Guide](docs/PROVIDER_SPECIFIC_DEVELOPMENT_WALKTHROUGH).
 
 ## 🔍 Keywords
 

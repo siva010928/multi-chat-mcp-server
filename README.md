@@ -280,7 +280,7 @@ src/providers/your_provider/
 4. **Register tools**:
    - Use the provided tool decorator to register your tools
 
-For detailed instructions, see the [Provider Development Guide](PROVIDER_SPECIFIC_DEVELOPMENT_DEMO.md).
+For detailed instructions, see the [Provider Development Guide](docs/PROVIDER_SPECIFIC_DEVELOPMENT_DEMO.md).
 
 ### Recommended Provider Directory Structure
 
@@ -382,11 +382,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Copyright (c) 2025 Sivaprakash Kumar. All rights reserved.
 
-While this is an open-source project that welcomes contributions, all copyright and ownership rights remain with Sivaprakash Kumar. See the [COPYRIGHT](COPYRIGHT) file for more information.
+While this is an open-source project that welcomes contributions, all copyright and ownership rights remain with Sivaprakash Kumar. See the [COPYRIGHT](docs/COPYRIGHT) file for more information.
 
 ### Contributing
 
-Contributions are welcome! By submitting a contribution, you agree to our [Contributor License Agreement](CONTRIBUTOR_LICENSE_AGREEMENT.md), which ensures that:
+Contributions are welcome! By submitting a contribution, you agree to our [Contributor License Agreement](docs/CONTRIBUTOR_LICENSE_AGREEMENT.md), which ensures that:
 
 1. Contributions become part of the codebase under the same MIT license
 2. Copyright ownership of all contributions is assigned to Sivaprakash Kumar
@@ -396,7 +396,7 @@ Please read the full CLA before contributing.
 
 ## 📝 Documentation
 
-For information on adding support for new providers or extending the Google Chat MCP functionality, see the [Provider Development Guide](PROVIDER_SPECIFIC_DEVELOPMENT_DEMO.md).
+For information on adding support for new providers or extending the Google Chat MCP functionality, see the [Provider Development Guide](docs/PROVIDER_SPECIFIC_DEVELOPMENT_DEMO.md).
 
 ## 🔍 Keywords
 

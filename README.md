@@ -1,489 +1,479 @@
-# Multi-Provider MCP Server for Google Chat, Slack, and Teams
-
+# Multi-Chat MCP Server (Google Chat Included)
 <div align="center">
-  <h3>A modular, extensible framework for AI assistants to interact with chat platforms, with comprehensive Google Chat MCP Server support</h3>
+  <h3>Multi-Chat MCP Server is an open-source Python framework to build AI-powered chat integrations. Ships with full Google Chat support.</h3>
+  
+  <p>
+    <strong>Keywords:</strong> Google Chat MCP • MCP Server Implementation • AI Chat Integration • Google Workspace Automation • Team Collaboration AI
+  </p>
 </div>
 
-## 🌟 Overview
+---
 
-**Multi-Provider MCP Server** (also known as Multi Chat MCP) is an open-source tool designed to connect AI assistants with various chat platforms through the Model Control Protocol (MCP) interface. This project aims to help developers working in organizations that use Google Chat, Microsoft Teams, Slack, and other communication platforms to seamlessly integrate their chat spaces with AI assistants.
+## 🎯 What is Google Chat MCP Server?
 
-While other MCP implementations may exist, they often provide only basic functionality that limits real-world applications. This project offers a **production-ready Google Chat MCP Server implementation** with extensive features that address practical, everyday developer needs, as demonstrated in our [example use cases](#real-world-use-cases).
+**Google Chat MCP Server** is an open-source, production-ready **Model Control Protocol (MCP) server** designed for **Google Chat integration with AI assistants**. Built with an extensible **multi-provider architecture**, this project provides a robust foundation for integrating AI assistants with team chat platforms.
 
-As a developer-first project, Multi Chat MCP Server enables engineering teams to build their own integrations rather than waiting for official implementations, especially for platforms like Microsoft Teams that don't yet have MCP servers available.
+### 🏢 Built for Organizational Security & Privacy
 
-### Supported Providers
+**Important Security Note:** This tool is **designed for local, organizational use only**. We strongly recommend using this with **organization-provided on-premises LLM instances** rather than cloud-based AI services to maintain complete control over your team's chat data and communications.
 
-- ✅ **Google Chat MCP Server** - Complete implementation with comprehensive API support
-- 🔄 **Slack MCP Server** - Planned
-- 📝 **Microsoft Teams MCP Server** - Planned (will use Microsoft Graph API)
+**Why Local/On-Premises Deployment:**
+- **Data Privacy**: Keep sensitive team conversations within your organization
+- **Security Compliance**: Meet enterprise security and compliance requirements
+- **Full Control**: Maintain complete oversight of data flow and access
+- **Custom Policies**: Implement organization-specific security measures
 
-### Key Benefits
+While anyone can adapt this tool for their particular use cases, it's designed with enterprise security as a priority.
 
-- **Provider Agnostic**: One unified interface for multiple chat platforms
-- **Production-Ready Google Chat Integration**: Fully featured Google Chat MCP tools
-- **Modular Architecture**: Easy extension to new providers
-- **Pre-built Tools**: Rich set of interface tools for each provider
-- **Authentication Management**: Built-in OAuth support and token management
-- **Dynamic Loading**: Load only the components needed for each provider
+### Current Implementation Status
 
-## 📸 Real-World Use Cases
+- ✅ **Google Chat Provider** - **Production Ready** with comprehensive API coverage
+- 🔄 **Slack Provider** - Planned (contributions welcome)
+- 📝 **Microsoft Teams Provider** - Planned (contributions welcome)
 
-The [google_chat_mcp_client_demo_images](./google_chat_mcp_client_demo_images/) directory contains examples of how this Google Chat MCP tool enables practical workflows for developers:
+### 🧭 The Story Behind This Project
 
-- **Team Collaboration**: Share errors with logs and get assistance from teammates
-- **Code Sharing**: Request and receive scripts directly in chat (e.g., aws-setup.sh)
-- **Requirements Management**: Pull and modify requirements files shared in team spaces
-- **Issue Resolution**: Follow team instructions to fix errors shared in chat
-- **Daily Updates**: Generate summaries of team activities
-- **Context-Aware Assistance**: Search for and assist with project-specific concerns
-- **Resource Comparison**: Compare shared scripts with local versions
-- **Mention Tracking**: Gather and respond to team mentions
+> *We even see open-source MCP servers for Google Chat — but not sure about Microsoft Teams or Slack, officially or in open source. However, even the ones that do exist fall short in real-world applicability. They offer limited functionalities that cannot handle full-context workflows like this project demonstrates.*
 
-These use cases demonstrate how the Multiple Chat MCP integration goes beyond simple message sending to become a powerful developer productivity tool that enhances team communication and problem solving.
+This **multi-provider MCP framework** was born from a real frustration experienced by development teams trying to leverage AI assistants in their daily workflows.
 
-## 📁 Project Structure
+---
+
+#### **The Original Problem**
+
+Picture this scenario: You're debugging a complex issue, your AI assistant suggests a solution, but you need to check if your teammates have encountered something similar. You switch to Google Chat, scroll through hundreds of messages, copy-paste error logs, wait for responses, then manually relay the solution back to your AI assistant.
+
+This constant context-switching was breaking the flow of productive AI-assisted development.
+
+---
+
+#### **The Breaking Point**
+
+During a critical production incident, a developer spent 30 minutes manually shuttling information between Claude (via Cursor) and the team's Google Chat space. The AI had the technical knowledge to help. The team had the contextual experience.
+But there was no bridge connecting these two knowledge sources.
+
+That’s when we realized:
+
+> **AI assistants need to be participants in team collaboration — not isolated tools.**
+**Our Solution:**
+- **Seamless Integration**: AI assistants become active participants in team chat
+- **Contextual Awareness**: AI can search team history for similar issues and solutions
+- **Collaborative Problem-Solving**: AI can share problems with the team and implement their suggestions
+- **Knowledge Bridging**: Connect AI technical knowledge with team experiential knowledge
+
+## 🎯 Built for Developer Extensibility
+
+### 🏗️ Modular Provider Architecture
+
+Each chat platform is implemented as an independent module:
 
 ```
-multi-chat-mcp-server/
-├── docs/                      # Documentation files
-├── src/
-│   ├── mcp_core/              # Core MCP functionality
-│   │   ├── engine/            # Provider loading mechanism
-│   │   │   └── provider_loader.py
-│   │   └── tools/             # Core tool registration
-│   │       ├── registry.py    # Central tool registry
-│   │       └── tool_decorator.py
-│   ├── providers/             # Provider-specific implementations
-│   │   ├── google_chat/       # Google Chat MCP provider
-│   │   │   ├── api/           # API client implementations
-│   │   │   ├── tools/         # MCP tool implementations
-│   │   │   ├── utils/         # Utility functions & search config
-│   │   │   ├── mcp_instance.py
-│   │   │   └── server_auth.py
-│   │   └── slack/             # Slack MCP provider structure (for future)
-│   ├── __init__.py
-│   └── server.py              # Main server entry point
-├── provider-config.yaml       # Provider configuration
-├── requirements.txt           # Project dependencies
-└── README.md                  # This file
+src/providers/
+├── google_chat/     # ✅ Complete implementation
+├── slack/           # 📋 Framework ready for implementation  
+└── teams/           # 📋 Framework ready for implementation
 ```
 
-## 🚀 Getting Started with Multi Chat MCP Server
+**POVs:**
+- **Independent Development** - Add providers without affecting others
+- **Custom Business Logic** - Tailor tools for specific organizational needs
+- **Scalable Deployment** - Deploy only the providers your team uses
+- **Community Extensible** - Easy for contributors to add new platforms
+
+### 👥 Who’s This For?
+
+This project is designed for **two primary audiences**:
+
+#### 🛠️ 1. Developers inside organizations
+
+If you're a developer working in a team that uses **Google Chat**, and you're looking to integrate your **AI IDEs (like Cursor, CodeWhisperer, or Copilot Chat)** with team conversations — this MCP client will save you hours.
+No more manually copying logs, checking for context, or waiting for someone to see your question.
+Your AI agent can now directly:
+
+* Search your chat history for relevant past discussions
+* Share code snippets or error logs automatically
+* Receive responses and convert them into actionable fixes
+* Summarize ongoing team activities
+* Fetch missing config/scripts from shared spaces
+
+#### 💡 2. Open source contributors & AI platform builders
+
+If you’re building AI-powered tools, IDE integrations, or internal assistants — this is your starting point for a **multi-provider MCP architecture**.
+You can fork this project to:
+
+* Extend support for **Slack**, **Microsoft Teams**, or **custom messaging platforms**
+* Build your own custom AI workflows on top of MCP
+* Add tools that interface with your organization’s infrastructure (e.g., Jira, GitHub, AWS)
+
+
+### ✅ **Google Chat MCP Server – Real-world Usage Showcase**
+
+Refactored for **logical storytelling**, **developer clarity**, and **progressive AI capability reveal**.
+
+---
+
+## 🧩 Google Chat MCP Server – Real-world Usage Showcase
+
+These walkthroughs show how an AI assistant, powered by this MCP server, evolves from a passive tool into an active collaborator — debugging issues, coordinating teams, syncing scripts, and proactively unblocking developers.
+
+---
+
+### 🛠️ Tool Setup & Initialization
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_google_chat_mcp_tools_registered_with_mcp_client.png" width="80%" alt="Scene 1: Tool Registration with Google Chat"/>
+  <p><i><strong>Scene 1: Tool Registration with Google Chat</strong></i></p>
+</div>
+
+**The Scenario:** Connecting MCP client to Google Chat.
+
+**What's Happening:** The AI assistant is granted access to all Google Chat tools (e.g., send, search, summarize, attach, reply).
+
+**Why it Matters:** The assistant can now *act* inside Google Chat, not just observe.
+
+---
+
+### 🧯 Debugging & Resolution (Docker Example)
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_i_asked_mcp_client_to_share_my_error_along_with_logs_to_get_help_from_my_team.png" width="80%" alt="Scene 8: Broadcasting an Error to the Team"/>
+  <p><i><strong>Scene 2: Broadcasting an Error to the Team</strong></i></p>
+</div>
+
+**What's Happening:** A developer asks the AI to share Docker error logs in chat, prompting real-time team help.
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/proof_that_team_member_replied_with_instructions_to_fix_the_errors_i_shared.png" width="80%" alt="Scene 3: Receiving a Fix from a Teammate"/>
+  <p><i><strong>Scene 3: Team Responds with a Fix</strong></i></p>
+</div>
+
+**Next Step:** A teammate replies with a Dockerfile fix (`COPY requirements.txt .`).
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_i_asked_mcp_client_to_check_with_response_of_my_error_issues_which_i_shared_recently_and_how_i_asked_to_follow_instructions_of_the_response_from_my_team_to_fix_the_issue.png" width="80%" alt="Scene 4: Agent Applies Suggested Fix"/>
+  <p><i><strong>Scene 4: Agent Applies the Fix</strong></i></p>
+</div>
+
+**Automation Moment:** The AI assistant edits the Dockerfile per the advice — no manual effort.
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_mcp_client_properly_followed_my_team_member_instructions_for_the_concern_i_shared.png" width="80%" alt="Scene 5: Verifying the Fix"/>
+  <p><i><strong>Scene 5: Verifying the Fix</strong></i></p>
+</div>
+
+**Wrap-up:** It verifies the change, confirms `requirements.txt` exists — and the error should be resolved.
+
+---
+
+### 📦 Dependency & Script Sync
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/proof_that_mcp_client_again_3rd_time_properly_assisted_the_concern_i_asked_to_then_it_properly_provided_my_local_latest_requirements_file_to_someone_who_facing_the_issues_with_requirements.png" width="80%" alt="Scene 6: Sharing requirements.txt"/>
+  <p><i><strong>Scene 6: Sharing `requirements.txt`</strong></i></p>
+</div>
+
+**Scenario:** I have requested my team requests to share a working `requirements.txt`.
+
+**Response:** One of my teammate shared their working `requirements.txt`.
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_i_asked_mcp_client_to_pull_the_lastest_requirements_and_modifying_with_the_local_one_that_i_asked_for_in_team_space_after_someone_shared_the_requirements_file.png" width="80%" alt="Scene 7: Syncing requirements.txt"/>
+  <p><i><strong>Scene 7: Syncing Local Copy</strong></i></p>
+</div>
+
+**Developer POV:** The AI reviewed the thread and based on my instruction, it updated my local `requirements.txt` with the one that was shared
+
+---
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_i_asked_my_team_to_share_aws-setup.sh_scrip_in_google_chat_space.png" width="80%" alt="Scene 8: Requesting AWS Setup Script"/>
+  <p><i><strong>Scene 8: Requesting AWS Setup Script</strong></i></p>
+</div>
+
+**Scenario:** You ask your team for a shared `aws-setup.sh` script.
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_mcp_client_get_aws-script-from-team-space-and-compare-it-with-local-one-after-team-member-replied-to-my-previous-requesting-aws-setup-script.png" width="80%" alt="Scene 9: Script Consistency Check"/>
+  <p><i><strong>Scene 9: Script Consistency Check</strong></i></p>
+</div>
+
+**Developer POV:** The AI reviewed the thread and based on my instruction, it compares the team’s script with your local version — ensuring you're in sync.
+
+---
+
+### 👀 Team Coordination & Catch-Up
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_i_asked_to_summarize_my_team_space_today_about_what_is_hapening_like_a_quick_updates.png" width="80%" alt="Scene 10: Summarizing Team Activity"/>
+  <p><i><strong>Scene 10: Summarizing Team Activity</strong></i></p>
+</div>
+
+**Context:** You’ve been away. What’s new?
+
+**AI Response:** The assistant summarizes key activity in your space: questions, PRs, shared files, blockers.
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_mcp_client(cursor)_get_my_mentions_from_team_chat_space.png" width="80%" alt="Scene 11: Catching Up on Mentions"/>
+  <p><i><strong>Scene 11: Catching Up on Mentions</strong></i></p>
+</div>
+
+**Missed a ping?** The AI scans for all mentions and surfaces conversations you were tagged in.
+
+---
+
+### 🔍 AI-Powered Problem Solving from Team Chat Context
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/how_mcp_client_again_search_for_any_concerns_in_our_chat_space_related_to_our_project_specifcally_to_assist_them_and_well_it_understand_the_concerns_and_assist_them.png" width="80%" alt="Scene 12: AI Scanning Team Chat for Problems"/>
+  <p><i><strong>Scene 12: AI Scanning Team Chat for Problems</strong></i></p>
+</div>
+
+**The Scenario:** A developer explicitly asks the AI assistant to help resolve open concerns mentioned by the team in the chat space.
+
+**What's Happening:** The AI scans recent chat messages, identifies technical questions, missing files, and potential blockers related to the project, and prepares to assist.
+
+**Developer Perspective:** The agent isn't just reactive — it understands team context and can search for unresolved issues when prompted.
+
+<div align="center">
+  <img src="google_chat_mcp_client_demo_images/proof_that_mcp_client_properly_assisted_the_concern_i_asked_to.png" width="80%" alt="Scene 13: AI Finds the Missing File Path"/>
+  <p><i><strong>Scene 13: AI Finds the Missing File Path</strong></i></p>
+</div>
+
+**Example Use Case:** A teammate mentioned they couldn’t find `ReviewForm.js`.
+
+**AI Response:** The agent searches the local repo, finds the correct path, and replies directly in the chat thread.
+
+**Why it Matters:** Instead of waiting for someone to respond, the AI assistant unblocks teammates in real-time with accurate, repo-aware answers — making onboarding and collaboration faster and smoother.
+
+## 🚀 Quick Start: Google Chat MCP Server Setup
 
 ### Prerequisites
 
-- **Python 3.9+**: The server requires Python 3.9 or newer
-- **UV Package Manager**: We recommend using UV for dependency management
-- **Provider-specific requirements**: Each provider requires specific OAuth scopes and permissions (detailed below)
+- **Python 3.9+**
+- **UV Package Manager** (recommended)
+- **Google Cloud Project** with Google Chat API enabled
+- **MCP Client** (Claude Desktop, Cursor, or other MCP-compatible AI assistant)
 
-### Server Configuration
-
-- **Default Host/Port**: The server runs on `localhost:8000` by default
-- **Override Options**: Use `--host` and `--port` arguments to change these settings
-- **Example**: `python -m src.server --provider google_chat --host 0.0.0.0 --port 8080`
-
-### Quick Setup Steps
-
-1. **Clone this repository**:
+### Step 1: Installation
 
 ```bash
+# Clone the repository
 git clone https://github.com/siva010928/multi-chat-mcp-server.git
 cd multi-chat-mcp-server
-```
 
-2. **Install dependencies**:
-
-```bash
-# Using UV (recommended)
+# Install dependencies
 uv venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 uv pip install -r requirements.txt
-
-# Or using traditional pip
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
 ```
 
-3. **Configure your provider**:
-   - **For Google Chat MCP** (production-ready):
-     - Create a Google Cloud project and enable the Google Chat API
-     - Set up OAuth consent screen and create OAuth credentials
-     - Download the credentials.json file to `src/providers/google_chat/credentials.json`
-   - **For other providers**:
-     - Follow provider-specific setup instructions in their README files
-   - Edit `provider-config.yaml` with your provider settings
-
-4. **Run the authentication server**:
+### Step 2: Google Chat Authentication Setup
 
 ```bash
-# For Google Chat MCP:
+# Set up Google Chat API credentials
+# 1. Create Google Cloud project
+# 2. Enable Google Chat API
+# 3. Download credentials.json to src/providers/google_chat/
+
+# Run authentication
 python -m src.server --provider google_chat --local-auth
-
-# For other providers:
-python -m src.server --provider <provider_name> --local-auth
 ```
 
-5. **Configure your MCP client** (e.g., Cursor):
-   - Add the MCP server configuration to your MCP client's settings
-   - For Google Chat in Cursor, see the [Cursor Integration Guide](src/providers/google_chat/CURSOR_INTEGRATION.md)
+### Step 3: Connect to Your AI Assistant
 
-### Provider Configuration Schema
+For **Cursor + Claude integration**, see our detailed [Google Chat MCP Cursor Integration Guide](src/providers/google_chat/CURSOR_INTEGRATION.md).
 
-The `provider-config.yaml` file follows this structure:
-
-```yaml
-providers:
-  provider_name:
-    # Required fields
-    name: "Provider Display Name"  # String: Human-readable name
-    description: "Provider description"  # String: Brief description
-    token_path: "path/to/token.json"  # String: Relative path for token storage
-    
-    # Optional fields (provider-specific)
-    credentials_path: "path/to/credentials.json"  # String: OAuth credentials
-    callback_url: "http://localhost:8000/auth/callback"  # String: OAuth callback URL
-    scopes: ["scope1", "scope2", ...]  # Array: OAuth scopes
-    # Additional provider-specific settings
-```
-
-### OAuth Scopes by Provider
-
-#### Google Chat MCP
-- `https://www.googleapis.com/auth/chat.spaces.readonly` - Read space information
-- `https://www.googleapis.com/auth/chat.messages` - Read and write messages
-- `https://www.googleapis.com/auth/chat.spaces` - Manage spaces
-- `https://www.googleapis.com/auth/userinfo.profile` - Access user profile information
-- `https://www.googleapis.com/auth/userinfo.email` - Access user email
-
-#### Slack MCP (Planned)
-- `chat:write` - Send messages
-- Other scopes will be documented as implementation progresses
-
-### Token Management
-
-- **Storage**: OAuth tokens are stored at the path specified by `token_path` in your provider config
-- **Refresh**: Tokens are automatically refreshed when they expire
-- **Revocation**: If a token is revoked, you'll need to re-authenticate:
-  ```bash
-  python -m src.server --provider google_chat --local-auth
-  ```
-- **Security**: Tokens contain sensitive information and should be protected (added to `.gitignore` by default)
-
-## 🔌 Providers
-
-### Currently Supported Providers
-
-#### Google Chat MCP Server (Production-Ready)
-
-[View Google Chat MCP Provider Documentation](src/providers/google_chat/README.md) | [Cursor Integration Guide](src/providers/google_chat/CURSOR_INTEGRATION.md)
-
-The Google Chat MCP provider offers comprehensive integration with Google Chat API, including:
-
-- **Message Management**:
-  - Send text messages to spaces, DMs, and group chats
-  - Reply to message threads
-  - Update and delete messages
-  - Add emoji reactions
-  
-- **Powerful Search Capabilities**:
-  - Regex-based search across all spaces
-  - Semantic search for finding conceptually related messages
-  - Search by date ranges, filters, and keywords
-  
-- **Space & User Management**:
-  - List accessible spaces and members
-  - Get user information and mentions
-  - File content sharing
-
-Google Chat MCP Server is fully tested and ready for production use with AI assistants like Claude in Cursor.
-
-### Future Providers (Planned)
-
-- **Slack**: Message sending/receiving, channel management, file sharing
-- **Microsoft Teams**: Message operations, channel access, meeting integration
-- **Discord**: Message operations, server management, role handling
-
-## 🔄 How This Project Differs From Other MCP Implementations
-
-### Feature-Rich Tools vs Basic Functionality
-
-While other MCP server implementations might focus on basic message sending and retrieval, this project provides **comprehensive platform API coverage** with tools that enable real developer workflows:
-
-| Feature | This Project | Basic MCP Implementations |
-|---------|-------------|--------------------|
-| Message Operations | ✅ Send, reply, update, delete, react | ⚠️ Typically just send/receive |
-| Advanced Search | ✅ Regex, semantic, filter-based | ❌ Limited or none |
-| Space Management | ✅ List, get details, find participants | ⚠️ Basic listing only |
-| User Context | ✅ Profile info, mentions, participant tracking | ⚠️ Minimal user info |
-| File Handling | ✅ Send files, content sharing | ❌ Limited or none |
-| Real-world Use Cases | ✅ Team collaboration examples | ❌ Few practical examples |
-
-### First Google Chat MCP Implementation
-
-To our knowledge, this is the **first open-source Google Chat MCP implementation**, bridging a significant gap for developers using Google Workspace. The Google Chat integration is:
-
-- **Production-ready**: Thoroughly tested in real developer workflows
-- **Comprehensive**: Covering nearly all Google Chat API functionality
-- **Documented**: With clear examples and integration guides
-- **Developer-focused**: Designed for practical daily use in engineering teams
-
-### Developer-First Philosophy
-
-This project emerged from real developer needs, not theoretical use cases:
-
-- Created by developers who use these tools daily
-- Designed to solve actual workflow challenges
-- Battle-tested in real team environments
-- Continuously improved based on real-world feedback
-
-## 🧩 Extending with New Providers
-
-### How to Add a New Provider
-
-Adding a new provider is straightforward with our modular architecture:
-
-1. **Create provider directory structure**:
-
-```
-src/providers/your_provider/
-├── api/                # API client implementations
-├── tools/              # MCP tool implementations
-├── utils/              # Utility functions
-├── __init__.py
-├── mcp_instance.py     # MCP instance configuration
-├── server_auth.py      # Authentication handling
-└── README.md           # Provider documentation
-```
-
-2. **Update provider configuration**:
-   - Add your provider configuration to `provider-config.yaml`
-   - Configure paths as relative paths from the project root directory
-   - Example:
-   ```yaml
-   providers:
-     your_provider:
-       name: Your Provider MCP
-       description: MCP server for Your Provider
-       token_path: src/providers/your_provider/token.json
-       credentials_path: src/providers/your_provider/credentials.json
-       # other configuration...
-   ```
-
-3. **Implement required modules**:
-   - `mcp_instance.py`: Create and configure the MCP instance
-   - `server_auth.py`: Implement authentication handling
-   - API modules: Create client code for your provider's API
-   - Tool modules: Implement tools to interact with your provider
-
-4. **Register tools**:
-   - Use the provided tool decorator to register your tools
-
-For detailed instructions, see the [Provider Development Guide](docs/PROVIDER_SPECIFIC_DEVELOPMENT_WALKTHROUGH).
-
-### Recommended Provider Directory Structure
-
-```
-src/providers/your_provider/
-├── api/
-│   ├── auth.py            # Authentication utilities
-│   ├── messages.py        # Message-related API calls
-│   ├── spaces.py          # Spaces/channels/rooms API calls
-│   └── users.py           # User-related API calls
-├── tools/
-│   ├── message_tools.py   # Message-related tools
-│   ├── space_tools.py     # Space/channel management tools
-│   └── user_tools.py      # User information tools
-├── utils/
-│   └── helpers.py         # Provider-specific utilities
-├── __init__.py
-├── mcp_instance.py        # MCP instance creation
-└── server_auth.py         # Authentication server
-```
-
-## 🛠 Common Tools and Utilities
-
-The MCP Core module provides shared functionality for all providers:
-
-- **Registry System**: Central registration of all tools
-- **Provider Loader**: Dynamic loading of provider modules
-- **Tool Decorator**: Simplified tool registration
-
-## 📋 MCP Client Configuration
-
-Configure your MCP client (e.g., Cursor) by editing the configuration file:
+For other MCP clients, add this configuration:
 
 ```json
 {
   "mcpServers": {
-    "google_chat": {
+    "google_chat_mcp": {
       "command": "uv",
       "args": [
         "--directory", "/path/to/multi-chat-mcp-server",
         "run", "-m", "src.server",
         "--provider", "google_chat"
       ]
-    },
-    "slack": {
-      "command": "uv",
-      "args": [
-        "--directory", "/path/to/multi-chat-mcp-server",
-        "run", "-m", "src.server",
-        "--provider", "slack"
-      ]
     }
   }
 }
 ```
 
-## Demo Screenshots Gallery using google chat mcp toolsets in cursor
+### 📖 Detailed Setup Documentation
 
-### Setup and Integration
+For comprehensive setup instructions including Google Cloud configuration, OAuth setup, and troubleshooting, see our **[Complete Google Chat MCP Setup Guide](src/providers/google_chat/README.md)** - This detailed implementation guide covers:
 
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/how_google_chat_mcp_tools_registered_with_mcp_client.png" width="80%" alt="MCP tools registration"/>
-  <p><i>Google Chat MCP tools registered with the MCP client</i></p>
-</div>
+- Google Cloud Project setup and API enablement
+- OAuth 2.0 configuration and security best practices
+- Step-by-step authentication flow
+- Common setup issues and their solutions
+- Advanced configuration options for enterprise environments
 
-### Team Communication
+## 🔥 Real-World Workflows Enabled
 
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/how_i_asked_my_team_to_share_aws-setup.sh_scrip_in_google_chat_space.png" width="80%" alt="Requesting files from team"/>
-  <p><i>Requesting team members to share files in Google Chat</i></p>
-</div>
-
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/how_i_asked_to_summarize_my_team_space_today_about_what_is_hapening_like_a_quick_updates.png" width="80%" alt="Summarizing team space"/>
-  <p><i>Getting a summary of recent activity in the team space</i></p>
-</div>
-
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/how_i_asked_mcp_client_to_share_my_error_along_with_logs_to_get_help_from_my_team.png" width="80%" alt="Sharing errors with team"/>
-  <p><i>Sharing error logs with the team to get assistance</i></p>
-</div>
-
-### User Mentions and Notifications
-
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/how_mcp_client(cursor)_get_my_mentions_from_team_chat_space.png" width="80%" alt="Getting mentions"/>
-  <p><i>Retrieving mentions from team chat spaces</i></p>
-</div>
-
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/how_our_messages_have_our_mentions_in_google_chat_space.png" width="80%" alt="Viewing mentions"/>
-  <p><i>Viewing message mentions in Google Chat</i></p>
-</div>
-
-### Search Capabilities
-
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/how_mcp_client_search_for_any_concerns_in_our_chat_space_related_to_our_project_specifcally_to_assist_them_and_well_it_understand_the_concerns_and_assist_them.png" width="80%" alt="Searching for concerns"/>
-  <p><i>Searching for project concerns in chat spaces</i></p>
-</div>
-
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/how_mcp_client_again_search_for_any_concerns_in_our_chat_space_related_to_our_project_specifcally_to_assist_them_and_well_it_understand_the_concerns_and_assist_them.png" width="80%" alt="Advanced search capabilities"/>
-  <p><i>Enhanced search with contextual understanding</i></p>
-</div>
-
-### File Handling and Sharing
-
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/how_mcp_client_get_aws-script-from-team-space-and-compare-it-with-local-one-after-team-member-replied-to-my-previous-requesting-aws-setup-script.png" width="80%" alt="Getting and comparing files"/>
-  <p><i>Retrieving and comparing files from team chat</i></p>
-</div>
-
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/how_i_asked_mcp_client_to_pull_the_lastest_requirements_and_modifying_with_the_local_one_that_i_asked_for_in_team_space_after_someone_shared_the_requirements_file.png" width="80%" alt="Syncing requirement files"/>
-  <p><i>Updating local files with latest versions shared in chat</i></p>
-</div>
+The demo walkthrough above demonstrates these practical team collaboration workflows:
 
 ### Collaborative Problem Solving
+- **Error Sharing & Resolution**: AI shares developer errors with team, receives expert guidance, and implements solutions
+- **Knowledge Transfer**: Team expertise is captured and applied through AI assistance
+- **Proactive Issue Detection**: AI monitors team chat for emerging concerns and offers assistance
 
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/proof_that_team_member_replied_with_instructions_to_fix_the_errors_i_shared.png" width="80%" alt="Team member instructions"/>
-  <p><i>Team members providing instructions to fix errors</i></p>
-</div>
+### Intelligent Resource Management
+- **Script Exchange**: Request and receive team scripts with automatic comparison to local versions
+- **Requirements Synchronization**: Pull and merge requirements files from team discussions
+- **Context-Aware Sharing**: AI determines optimal file sharing based on team needs
 
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/how_i_asked_mcp_client_to_check_with_response_of_my_error_issues_which_i_shared_recently_and_how_i_asked_to_follow_instructions_of_the_response_from_my_team_to_fix_the_issue.png" width="80%" alt="Following error fixing instructions"/>
-  <p><i>AI assistant following team instructions to fix errors</i></p>
-</div>
+### Enhanced Team Communication
+- **Mention Tracking**: Comprehensive monitoring and response to team mentions
+- **Activity Summaries**: AI-generated updates on team progress and blockers
+- **Semantic Search**: Find conceptually related discussions across team spaces
 
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/how_mcp_client_properly_followed_my_team_member_instructions_for_the_concern_i_shared.png" width="80%" alt="Successfully implementing fixes"/>
-  <p><i>Successfully implementing fixes based on team instructions</i></p>
-</div>
+## 📁 Project Architecture
 
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/proof_that_mcp_client_properly_assisted_the_concern_i_asked_to.png" width="80%" alt="Verifying issue resolution"/>
-  <p><i>Verification of successfully resolving team concerns</i></p>
-</div>
+```
+multi-chat-mcp-server/
+├── src/
+│   ├── providers/
+│   │   ├── google_chat/           # ✅Production-Ready Google Chat MCP
+│   │   │   ├── api/               # Google Chat API implementation
+│   │   │   ├── tools/             # MCP tools for Google Chat
+│   │   │   ├── utils/             # Utilities and helpers
+│   │   │   ├── README.md          # Setup guide
+│   │   │   └── CURSOR_INTEGRATION.md  # Cursor integration
+│   │   ├── slack/                 # 📋 Ready for implementation
+│   │   └── teams/                 # 📋 Ready for implementation
+│   ├── mcp_core/                  # Core MCP functionality
+│   └── server.py                  # Multi-provider MCP server
+├── provider-config.yaml           # Provider configurations
+└── google_chat_mcp_client_demo_images/  # Demo screenshots
+```
 
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/proof_that_mcp_client_again_properly_assisted_the_concern_i_asked_to.png" width="80%" alt="Additional verification"/>
-  <p><i>Additional proof of successfully addressing team concerns</i></p>
-</div>
+### Provider Configuration
 
-<div align="center">
-  <img src="google_chat_mcp_client_demo_images/proof_that_mcp_client_again_3rd_time_properly_assisted_the_concern_i_asked_to_then_it_properly_provided_my_local_latest_requirements_file_to_someone_who_facing_the_issues_with_requirements.png" width="80%" alt="Sharing solutions with other team members"/>
-  <p><i>Sharing solutions with other team members facing similar issues</i></p>
-</div>
+```yaml
+providers:
+  google_chat:
+    name: "Google Chat MCP Server"
+    description: "Production-ready Google Chat MCP integration"
+    token_path: "src/providers/google_chat/token.json"
+    credentials_path: "src/providers/google_chat/credentials.json"
+    callback_url: "http://localhost:8000/auth/callback"
+```
 
-## 📚 Architecture & Documentation
+## 🔮 Roadmap & Contributing
 
-This project follows a modular architecture with these key components:
+### Current Implementation Status
+- ✅ **Google Chat Provider** - Production ready with comprehensive features
+- 📋 **Slack Provider** - Framework ready, implementation needed
+- 📋 **Teams Provider** - Framework ready, implementation needed
 
-- **Core Engine**: Provider loading and configuration
-- **Tool Registry**: Central registration system for tools
-- **Provider Modules**: Platform-specific implementations
-- **MCP Interface**: Standard interface for AI interactions
+### How to Contribute
 
-## ⚠️ Troubleshooting & Known Issues
+We welcome contributions to extend this framework with additional providers:
 
-- **Authentication issues**: Ensure credentials files are correctly placed and formatted
-- **Tool availability**: Check that tools are properly registered with the MCP instance
-- **Provider-specific issues**: See provider documentation for specific troubleshooting
+1. **Choose a Provider**: Slack, Teams, or any other chat platform
+2. **Follow the Architecture**: Use `src/providers/google_chat/` as a reference
+3. **Implement Core Features**: Messages, search, user management
+4. **Add Provider-Specific Tools**: Leverage unique platform capabilities
+5. **Submit Pull Request**: We'll help review and integrate
 
-## 🔮 Future Roadmap
+**Getting Started with Contributions:**
+- 📖 **[Provider Development Guide](docs/PROVIDER_SPECIFIC_DEVELOPMENT_WALKTHROUGH)** - Technical implementation details
+- 🔗 **[GitHub Issues](https://github.com/siva010928/multi-chat-mcp-server/issues)** - Find tasks or report bugs
+- 💬 **[GitHub Discussions](https://github.com/siva010928/multi-chat-mcp-server/discussions)** - Feature requests and ideas
 
-- Additional provider implementations (Teams, Discord)
-- Enhanced authentication flows
-- More advanced semantic search capabilities
-- Improved file attachment handling
-- User interface for configuration
+### Future Multi-Provider Features
+- 🔗 **Cross-platform messaging** via unified MCP interface
+- 🤖 **Enhanced AI context sharing** across chat platforms
+- 🔍 **Universal search** across multiple chat platforms
+- 📊 **Multi-platform analytics** and reporting
 
-## 📄 License & Ownership
+## 📚 Documentation
 
-### License
+### Essential Resources
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- 📖 **[Complete Google Chat MCP Setup Guide](src/providers/google_chat/README.md)** - Detailed implementation guide
+- 🔗 **[Google Chat MCP + Cursor Integration](src/providers/google_chat/CURSOR_INTEGRATION.md)** - Step-by-step Cursor setup
+- 🛠️ **[Provider Development Guide](docs/PROVIDER_SPECIFIC_DEVELOPMENT_WALKTHROUGH)** - Extend functionality
+- ⚖️ **[Contributor License Agreement](docs/CONTRIBUTOR_LICENSE_AGREEMENT.md)** - Contributing guidelines
 
-### Copyright
+## 🔍 Troubleshooting
 
-Copyright (c) 2025 Sivaprakash Kumar. All rights reserved.
+### Common Google Chat Issues
 
-While this is an open-source project that welcomes contributions, all copyright and ownership rights remain with Sivaprakash Kumar. See the [COPYRIGHT](docs/COPYRIGHT) file for more information.
+**Authentication Problems**
+```bash
+# Re-authenticate Google Chat
+python -m src.server --provider google_chat --local-auth
+```
+
+**Tool Registration Issues**
+- Verify tools appear in your AI assistant
+- Check provider configuration in `provider-config.yaml`
+- Ensure all Google Chat API scopes are granted
+
+**Connection Problems**
+- Confirm Google Chat API is enabled in Google Cloud Console
+- Verify credentials.json file placement
+- Check network connectivity and firewall settings
+
+## 🏆 Why Choose This MCP Server?
+
+### ✅ Battle-Tested Google Chat Integration
+- **Comprehensive API coverage** beyond basic messaging
+- **Real-world workflows** tested in development environments
+- **Production-ready** with proper error handling and authentication
+
+### ✅ Developer-Friendly Architecture
+- **Created by developers** for actual development workflows
+- **Modular design** makes it easy to understand and extend
+- **Well-documented** with practical examples
+
+### ✅ Community-Extensible Framework
+- **Open source** with transparent development
+- **Contributor-friendly** architecture and documentation
+- **Multi-provider ready** for diverse business needs
+
+## 📞 Support & Community
+
+### Get Help
+
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/siva010928/multi-chat-mcp-server/issues)
+- 💡 **Feature Requests**: [GitHub Discussions](https://github.com/siva010928/multi-chat-mcp-server/discussions)
+- 🛠️ **Development Questions**: Open an issue with technical details
 
 ### Contributing
 
-Contributions are welcome! By submitting a contribution, you agree to our [Contributor License Agreement](docs/CONTRIBUTOR_LICENSE_AGREEMENT.md), which ensures that:
+We welcome contributions to expand this multi-provider framework:
 
-1. Contributions become part of the codebase under the same MIT license
-2. Copyright ownership of all contributions is assigned to Sivaprakash Kumar
-3. You have the legal right to contribute the code
+1. **Fork** the repository
+2. **Create** a feature branch for your provider or enhancement
+3. **Follow** the existing architecture patterns
+4. **Submit** a pull request
+5. **Sign** our [Contributor License Agreement](docs/CONTRIBUTOR_LICENSE_AGREEMENT.md)
 
-Please read the full CLA before contributing.
+## 📄 License & Copyright
 
-## 📝 Documentation
+### Open Source License
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-For information on adding support for new providers or extending the Google Chat MCP functionality, see the [Provider Development Guide](docs/PROVIDER_SPECIFIC_DEVELOPMENT_WALKTHROUGH).
+### Copyright Notice
+Copyright (c) 2025 Sivaprakash Kumar. All rights reserved.
 
-## 🔍 Keywords
+While this is an open-source project welcoming contributions, all copyright and ownership rights remain with Sivaprakash Kumar. See [COPYRIGHT](docs/COPYRIGHT) for details.
 
-google chat mcp, multi-provider mcp, google chat claude, google chat ai assistant, mcp server, model control protocol, google workspace ai integration, claude google chat, anthropic claude integration, cursor google chat, slack mcp, chat platform ai integration
+---
 
-## 📞 Contact & Support
-
-For questions, feature requests, or bug reports, please open an issue on our GitHub repository. 
+<div align="center">
+  <h3>🚀 Start Building with Google Chat MCP Server Today!</h3>
+  <p>
+    <strong>Production-ready Google Chat integration with extensible multi-provider architecture</strong><br>
+    Perfect for developers building AI-powered team collaboration tools
+  </p>
+  
+  <p>
+    <strong>⭐ Star this repository if it helps your development workflow!</strong><br>
+    <strong>🤝 Contribute to expand support for Slack, Teams, and other platforms!</strong>
+  </p>
+</div>

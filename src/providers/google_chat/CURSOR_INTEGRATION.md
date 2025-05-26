@@ -113,4 +113,4 @@ You can modify the custom rule to match your team's specific communication style
 3. **Approval Process**: Adjust when messages require explicit approval
 4. **Search Behavior**: Modify how "catch me up" searches are performed
 
-For additional help with Cursor integration, refer to the [Cursor documentation](https://cursor.sh/docs/mcp-configuration). 
+For additional help with Cursor integration, refer to the [Cursor rules documentation](https://docs.cursor.com/context/rules). 

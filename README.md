@@ -1,22 +1,22 @@
-# Multi-Provider MCP Server (Google Chat & Beyond)
+# Multi-Provider MCP Server for Google Chat, Slack, and Teams
 
 <div align="center">
-  <h3>A modular, extensible framework for AI assistants to interact with chat platforms, with comprehensive Google Chat MCP support</h3>
+  <h3>A modular, extensible framework for AI assistants to interact with chat platforms, with comprehensive Google Chat MCP Server support</h3>
 </div>
 
 ## 🌟 Overview
 
-**Multi-Provider MCP Server** is an open-source tool designed to connect AI assistants with various chat platforms through the Model Control Protocol (MCP) interface. This project aims to help developers working in organizations that use Google Chat, Microsoft Teams, Slack, and other communication platforms to seamlessly integrate their chat spaces with AI assistants.
+**Multi-Provider MCP Server** (also known as Multi Chat MCP) is an open-source tool designed to connect AI assistants with various chat platforms through the Model Control Protocol (MCP) interface. This project aims to help developers working in organizations that use Google Chat, Microsoft Teams, Slack, and other communication platforms to seamlessly integrate their chat spaces with AI assistants.
 
-While other MCP implementations may exist, they often provide only basic functionality that limits real-world applications. This project offers **production-ready Google Chat MCP implementation** with extensive features that address practical, everyday developer needs, as demonstrated in our [example use cases](#real-world-use-cases).
+While other MCP implementations may exist, they often provide only basic functionality that limits real-world applications. This project offers a **production-ready Google Chat MCP Server implementation** with extensive features that address practical, everyday developer needs, as demonstrated in our [example use cases](#real-world-use-cases).
 
-As a developer-first project, Multi-Provider MCP Server enables engineering teams to build their own integrations rather than waiting for official implementations, especially for platforms like Microsoft Teams that don't yet have MCP servers available.
+As a developer-first project, Multi Chat MCP Server enables engineering teams to build their own integrations rather than waiting for official implementations, especially for platforms like Microsoft Teams that don't yet have MCP servers available.
 
 ### Supported Providers
 
-- ✅ **Google Chat** - Complete implementation with comprehensive API support
-- 🔄 **Slack** - Planned
-- 📝 **Microsoft Teams** - Planned (will use Microsoft Graph API)
+- ✅ **Google Chat MCP Server** - Complete implementation with comprehensive API support
+- 🔄 **Slack MCP Server** - Planned
+- 📝 **Microsoft Teams MCP Server** - Planned (will use Microsoft Graph API)
 
 ### Key Benefits
 
@@ -29,7 +29,7 @@ As a developer-first project, Multi-Provider MCP Server enables engineering team
 
 ## 📸 Real-World Use Cases
 
-The [google_chat_mcp_client_demo_images](./google_chat_mcp_client_demo_images/) directory contains examples of how this tool enables practical workflows for developers:
+The [google_chat_mcp_client_demo_images](./google_chat_mcp_client_demo_images/) directory contains examples of how this Google Chat MCP tool enables practical workflows for developers:
 
 - **Team Collaboration**: Share errors with logs and get assistance from teammates
 - **Code Sharing**: Request and receive scripts directly in chat (e.g., aws-setup.sh)
@@ -40,7 +40,7 @@ The [google_chat_mcp_client_demo_images](./google_chat_mcp_client_demo_images/) 
 - **Resource Comparison**: Compare shared scripts with local versions
 - **Mention Tracking**: Gather and respond to team mentions
 
-These use cases demonstrate how the MCP integration goes beyond simple message sending to become a powerful developer productivity tool that enhances team communication and problem solving.
+These use cases demonstrate how the Multiple Chat MCP integration goes beyond simple message sending to become a powerful developer productivity tool that enhances team communication and problem solving.
 
 ## 📁 Project Structure
 
@@ -55,13 +55,13 @@ multi-chat-mcp-server/
 │   │       ├── registry.py    # Central tool registry
 │   │       └── tool_decorator.py
 │   ├── providers/             # Provider-specific implementations
-│   │   ├── google_chat/       # Google Chat provider
+│   │   ├── google_chat/       # Google Chat MCP provider
 │   │   │   ├── api/           # API client implementations
 │   │   │   ├── tools/         # MCP tool implementations
 │   │   │   ├── utils/         # Utility functions & search config
 │   │   │   ├── mcp_instance.py
 │   │   │   └── server_auth.py
-│   │   └── slack/             # Slack provider structure (for future)
+│   │   └── slack/             # Slack MCP provider structure (for future)
 │   ├── __init__.py
 │   └── server.py              # Main server entry point
 ├── provider-config.yaml       # Provider configuration
@@ -69,7 +69,7 @@ multi-chat-mcp-server/
 └── README.md                  # This file
 ```
 
-## 🚀 Getting Started
+## 🚀 Getting Started with Multi Chat MCP Server
 
 ### Prerequisites
 
@@ -107,7 +107,7 @@ pip install -r requirements.txt
 ```
 
 3. **Configure your provider**:
-   - **For Google Chat** (production-ready):
+   - **For Google Chat MCP** (production-ready):
      - Create a Google Cloud project and enable the Google Chat API
      - Set up OAuth consent screen and create OAuth credentials
      - Download the credentials.json file to `src/providers/google_chat/credentials.json`
@@ -118,7 +118,7 @@ pip install -r requirements.txt
 4. **Run the authentication server**:
 
 ```bash
-# For Google Chat:
+# For Google Chat MCP:
 python -m src.server --provider google_chat --local-auth
 
 # For other providers:
@@ -150,14 +150,14 @@ providers:
 
 ### OAuth Scopes by Provider
 
-#### Google Chat
+#### Google Chat MCP
 - `https://www.googleapis.com/auth/chat.spaces.readonly` - Read space information
 - `https://www.googleapis.com/auth/chat.messages` - Read and write messages
 - `https://www.googleapis.com/auth/chat.spaces` - Manage spaces
 - `https://www.googleapis.com/auth/userinfo.profile` - Access user profile information
 - `https://www.googleapis.com/auth/userinfo.email` - Access user email
 
-#### Slack (Planned)
+#### Slack MCP (Planned)
 - `chat:write` - Send messages
 - Other scopes will be documented as implementation progresses
 
@@ -175,11 +175,11 @@ providers:
 
 ### Currently Supported Providers
 
-#### Google Chat MCP (Production-Ready)
+#### Google Chat MCP Server (Production-Ready)
 
-[View Google Chat Provider Documentation](src/providers/google_chat/README.md) | [Cursor Integration Guide](src/providers/google_chat/CURSOR_INTEGRATION.md)
+[View Google Chat MCP Provider Documentation](src/providers/google_chat/README.md) | [Cursor Integration Guide](src/providers/google_chat/CURSOR_INTEGRATION.md)
 
-The Google Chat provider offers comprehensive integration with Google Chat API, including:
+The Google Chat MCP provider offers comprehensive integration with Google Chat API, including:
 
 - **Message Management**:
   - Send text messages to spaces, DMs, and group chats
@@ -197,7 +197,7 @@ The Google Chat provider offers comprehensive integration with Google Chat API, 
   - Get user information and mentions
   - File content sharing
 
-Google Chat MCP is fully tested and ready for production use with AI assistants like Claude in Cursor.
+Google Chat MCP Server is fully tested and ready for production use with AI assistants like Claude in Cursor.
 
 ### Future Providers (Planned)
 

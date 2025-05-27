@@ -1,10 +1,12 @@
 # Cursor Integration with Google Chat MCP
 
-This document provides detailed instructions for integrating the Google Chat MCP server with the Cursor AI assistant.
+This document provides detailed instructions for integrating the **Google Chat MCP server** with the **Cursor AI assistant**, enabling the agent to collaborate inside team chat spaces using MCP tools.
 
-## Configuration
+---
 
-1. Edit your `~/.cursor/mcp.json` file to include the Google Chat MCP server:
+## ⚙️ Configuration: Connecting Cursor with Google Chat MCP
+
+1. Edit your `~/.cursor/mcp.json` file to register the Google Chat MCP server:
 
 ```json
 {
@@ -13,7 +15,7 @@ This document provides detailed instructions for integrating the Google Chat MCP
       "command": "uv",
       "args": [
         "--directory",
-        "/path/to/multi-chat-mcp-server",
+        "/absolute/path/to/multi-chat-mcp-server",
         "run",
         "-m", 
         "src.server",
@@ -23,94 +25,142 @@ This document provides detailed instructions for integrating the Google Chat MCP
     }
   }
 }
-```
+````
 
-Replace `/path/to/multi-chat-mcp-server` with the absolute path to your repository.
+> ✅ Replace `/absolute/path/to/multi-chat-mcp-server` with the **full path** to your repo.
+> 💡 We recommend using `uv` for fast startup and dependency isolation.
 
-> **Note**: While local development can use Python directly, MCP clients like Cursor work best with UV for dependency isolation.
+---
 
-## Custom Rule for Team Communication
+## ✅ Cursor Project Rule: Enable AI Team Messaging via Google Chat
 
-To maximize the effectiveness of the Google Chat MCP integration with Cursor, consider adding the following rule to your Cursor custom instructions. This rule automates team communications and information retrieval through Google Chat.
+To enable seamless team communication using Google Chat MCP, add this **project rule** to your Cursor environment.
 
-First, find your Google Chat space ID:
-
-1. Use the `mcp_google_chat_get_chat_spaces_tool(random_string="list")` in Cursor
-2. Look for the space you want to use as your team chat
-3. Note the ID in the format `spaces/YOUR_SPACE_ID` 
-
-Then add this rule to your Cursor custom instructions, replacing `YOUR_SPACE_ID` with your actual space ID:
+Find your desired chat space (e.g. "Frontend Team" or "DevOps Alerts") and copy the space ID in the format:
 
 ```
-# Google Chat Team Communication Rule
-
-If I say anything that implies communicating with my team—including phrases like:
-
-"Catch me up with [topic/updates/etc.]"
-"Update my team"
-"Send this to the team"
-"Let the team know"
-"Share with my team"
-"Message the team"
-"Convey this to them"
-"Team should know this"
-"Notify the team"
-"Tell everyone"
-"Broadcast this"
-"Share this update"
-"Remind them about [something]"
-
-Interpret this as a command to send a message via the Google Chat MCP agent using:
-
-space_name: spaces/YOUR_SPACE_ID
-text: [the content from my message]
-
-For unclear requests:
-1. Draft a message
-2. Ask "Here's what I'll send to the team. Approve?"
-3. Wait for my confirmation
-
-For "catch me up" requests:
-1. Search with "semantic" mode first
-2. If no results, try "regex" mode
-3. Show all results without excessive summarization
-
-Examples:
-- "Let team know we're launching tomorrow" → send immediately
-- "Share this update with everyone" → show draft for approval
-- "Catch me up with project updates" → search and show full results
+spaces/AAAAABBBBCCC
 ```
 
-## Usage Tips
+---
 
-1. **Space Discovery**: Use `mcp_google_chat_get_chat_spaces_tool(random_string="list")` to find available spaces.
+### Step 2: Add Rule File to `.cursor/rules/team-communication.mdc`
 
-2. **Search Commands**: Use both semantic and regex search for best results:
-   ```
-   mcp_google_chat_search_messages_tool(query="meeting", search_mode="semantic")
-   ```
+Create the following file inside your project:
 
-3. **Thread Replies**: To reply to existing threads, specify the thread key from a message:
-   ```
-   mcp_google_chat_reply_to_message_thread_tool(
-     space_name="spaces/YOUR_SPACE_ID", 
-     thread_key="THREAD_KEY", 
-     text="My reply"
-   )
-   ```
+📄 `.cursor/rules/team-communication.mdc`
 
-4. **Getting Mentions**: Periodically check for mentions:
-   ```
-   mcp_google_chat_get_my_mentions_tool()
-   ```
+```mdc
+---
+description: Interprets natural language phrases to invoke Google Chat MCP tools for messaging, replying, searching, reacting, uploading, and summarizing
+alwaysApply: true
+globs:
+  - "**/*"
+---
 
-## Advanced Customization
+- When I say something like:
+  - "Send this to [team/space/alias]"
+  - "Let the team know"
+  - "Update [frontend/backend/devops]"
+  - "Reply to that with [text]"
+  - "Post this in the thread"
+  - "Share this update"
+  - "Upload this file"
 
-You can modify the custom rule to match your team's specific communication style. The key components you might want to customize:
+  → Send a message or reply to a thread:
+    - If I mentioned a thread: reply to it
+    - If no thread is referenced: post as a new message in the mapped space
+    - Support formatting (bold, emoji, code blocks) and space aliases
+    - If a file is present, include it either as inline text or attachment
 
-1. **Trigger Phrases**: Add or remove phrases that should trigger team communication
-2. **Space ID**: Change the default space for communications
-3. **Approval Process**: Adjust when messages require explicit approval
-4. **Search Behavior**: Modify how "catch me up" searches are performed
+- When I say:
+  - "Catch me up on [topic]"
+  - "Search for [keyword]"
+  - "Find messages about [X]"
+  - "Look up what happened regarding [Y]"
 
-For additional help with Cursor integration, refer to the [Cursor rules documentation](https://docs.cursor.com/context/rules). 
+  → Search across spaces:
+    - Default to `semantic` search with `days_window=3`, `offset=0`
+    - If no results, fallback to `days_window=6`, then `30`
+    - If the query looks like a pattern (e.g., uses | or \b), switch to `regex`
+    - If I say “exactly”, use `exact` search mode
+    - If I mention a time like “3 days ago”, use `days_window=1`, `offset=3`
+    - If I say “last week”, use `days_window=7`, `offset=7`
+
+- When I say:
+  - "Who mentioned me?"
+  - "Check my mentions"
+  - "Was I tagged in [space/topic]?"
+
+  → Get mentions of the current user:
+    - Use `days=7`, `offset=0`
+    - If I mention a space, narrow the search
+
+- When I say:
+  - "Show recent messages from [space]"
+  - "List messages in this chat"
+  - "Get the last [N] messages"
+
+  → Fetch raw message history:
+    - Use `get_space_messages` or equivalent
+    - Use `days_window=3`, or time offset if specified
+    - Order by most recent first unless I say “chronologically”
+
+- When I say:
+  - "React with 👍"
+  - "Add a reaction to that"
+
+  → Add emoji reaction to the last referenced message
+
+- When I say:
+  - "Summarize this chat"
+  - "Give me a summary of [space/thread]"
+
+  → Use summary tool to generate conversation overview with participants, messages, and highlights
+
+- When I say:
+  - "Who’s active in [space]?"
+  - "List recent contributors"
+
+  → Get participants in space using `days_window` as inferred from time expressions
+
+- Alias mapping for space names:
+  - frontend → spaces/AAA_FRONTEND_ID
+  - backend → spaces/BBB_BACKEND_ID
+  - devops → spaces/CCC_DEVOPS_ID
+
+- Use confirmation prompts when the request is vague:
+  - “Should I send this to frontend?”
+  - “Here's what I found. Should I summarize?”
+
+- Avoid summarizing or truncating messages unless explicitly instructed
+
+- Ensure message_count and sender_info are included when useful
+
+- Always handle file-based input by deciding:
+  - If it should be shared as an attachment
+  - If text content should be embedded directly
+
+- Always behave as a proactive team assistant — reply as a helpful collaborator
+```
+
+> ✅ Replace each space ID with your actual values
+
+---
+
+## 🧠 Customize the Rule
+
+You can tweak the rule to fit your org’s communication style:
+
+| Option                | How to customize                                     |
+| --------------------- | ---------------------------------------------------- |
+| Trigger phrases       | Add phrases like “ping team” or “drop this in infra” |
+| Team aliases          | Add new mappings like `qa` → `spaces/XXX_QA_ID`      |
+| Message preview rules | Skip preview for specific aliases or short messages  |
+
+---
+
+## 🔗 Additional Resources
+
+* [Cursor Rule Docs](https://docs.cursor.com/context/rules)
+* [Cursor Rule Generator (from chat)](https://docs.cursor.com/context/rules#generating-rules)

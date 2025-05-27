@@ -310,7 +310,54 @@ For comprehensive setup instructions including Google Cloud configuration, OAuth
 - OAuth 2.0 configuration and security best practices
 - Step-by-step authentication flow
 - Common setup issues and their solutions
-- Advanced configuration options for enterprise environments
+
+## Google Chat Tools Supported (will be extended)
+
+Interact with Google Chat using the tools below. Each tool includes its source file and parameters.
+
+### 🧭 Space Management
+
+* `get_chat_spaces_tool` – List spaces
+* `manage_space_members_tool` – Add/remove members
+* `get_conversation_participants_tool` – Get space participants
+* `summarize_conversation_tool` – Summarize conversation
+
+### 💬 Messaging
+
+* `send_message_tool` – Send a message
+* `reply_to_message_thread_tool` – Reply in thread
+* `update_chat_message_tool` – Update message
+* `delete_chat_message_tool` – Delete message
+
+### 😀 Interactions
+
+* `add_emoji_reaction_tool` – React to message
+* `get_chat_message_tool` – Get message details
+
+### 🔍 Search & Filters
+
+* `search_messages_tool` – Search messages
+* `get_my_mentions_tool` – Find mentions
+
+### 👤 User Info
+
+* `get_my_user_info_tool` – Your profile
+* `get_user_info_by_id_tool` – User by ID
+* `get_message_with_sender_info_tool` – Message with sender info
+* `list_messages_with_sender_info_tool` – List messages with sender info
+
+### 📎 File Handling
+
+* `upload_attachment_tool` – Upload attachment
+* `send_file_message_tool` – Send file content
+* `send_file_content_tool` – Send formatted file content
+
+### 📦 Batch Operations
+
+* `batch_send_messages_tool` – Send multiple messages
+
+📁 *Source files located under `src/providers/google_chat/tools/`*
+
 
 ## Running Multiple Chat Providers Simultaneously
 

@@ -52,7 +52,7 @@ This constant context-switching was breaking the flow of productive AI-assisted 
 During a critical production incident, a developer spent 30 minutes manually shuttling information between Claude (via Cursor) and the team's Google Chat space. The AI had the technical knowledge to help. The team had the contextual experience.
 But there was no bridge connecting these two knowledge sources.
 
-That’s when we realized:
+That's when we realized:
 
 > **AI assistants need to be participants in team collaboration — not isolated tools.**
 **Our Solution:**
@@ -80,7 +80,7 @@ src/providers/
 - **Scalable Deployment** - Deploy only the providers your team uses
 - **Community Extensible** - Easy for contributors to add new platforms
 
-### 👥 Who’s This For?
+### 👥 Who's This For?
 
 This project is designed for **two primary audiences**:
 
@@ -98,12 +98,12 @@ Your AI agent can now directly:
 
 #### 💡 2. Open source contributors & AI platform builders
 
-If you’re building AI-powered tools, IDE integrations, or internal assistants — this is your starting point for a **multi-provider MCP architecture**.
+If you're building AI-powered tools, IDE integrations, or internal assistants — this is your starting point for a **multi-provider MCP architecture**.
 You can fork this project to:
 
 * Extend support for **Slack**, **Microsoft Teams**, or **custom messaging platforms**
 * Build your own custom AI workflows on top of MCP
-* Add tools that interface with your organization’s infrastructure (e.g., Jira, GitHub, AWS)
+* Add tools that interface with your organization's infrastructure (e.g., Jira, GitHub, AWS)
 
 
 ## 🧩 Google Chat MCP Server – Real-world Usage Showcase
@@ -191,7 +191,7 @@ These walkthroughs show how an AI assistant, powered by this MCP server, evolves
   <p><i><strong>Scene 9: Script Consistency Check</strong></i></p>
 </div>
 
-**Developer POV:** The AI reviewed the thread and based on my instruction, it compares the team’s script with your local version — ensuring you're in sync.
+**Developer POV:** The AI reviewed the thread and based on my instruction, it compares the team's script with your local version — ensuring you're in sync.
 
 ---
 
@@ -202,7 +202,7 @@ These walkthroughs show how an AI assistant, powered by this MCP server, evolves
   <p><i><strong>Scene 10: Summarizing Team Activity</strong></i></p>
 </div>
 
-**Context:** You’ve been away. What’s new?
+**Context:** You've been away. What's new?
 
 **AI Response:** The assistant summarizes key activity in your space: questions, PRs, shared files, blockers.
 
@@ -233,7 +233,7 @@ These walkthroughs show how an AI assistant, powered by this MCP server, evolves
   <p><i><strong>Scene 13: AI Finds the Missing File Path</strong></i></p>
 </div>
 
-**Example Use Case:** A teammate mentioned they couldn’t find `ReviewForm.js`.
+**Example Use Case:** A teammate mentioned they couldn't find `ReviewForm.js`.
 
 **AI Response:** The agent searches the local repo, finds the correct path, and replies directly in the chat thread.
 
@@ -293,6 +293,47 @@ For other MCP clients, add this configuration:
   }
 }
 ```
+
+### Step 4: Running Multiple Chat Providers Simultaneously
+
+One of the key advantages of Multi Chat MCP Server is the ability to run **multiple chat providers simultaneously**. Each provider runs in its own server instance, allowing your AI assistant to interact with multiple platforms at once.
+
+For example, you can configure both Google Chat and Slack MCP servers to run simultaneously:
+
+```json
+{
+  "mcpServers": {
+    "google_chat": {
+      "command": "uv",
+      "args": [
+        "--directory", "/path/to/multi-chat-mcp-server",
+        "run", "-m", "src.server",
+        "--provider", "google_chat"
+      ]
+    },
+    "slack": {
+      "command": "uv",
+      "args": [
+        "--directory", "/path/to/multi-chat-mcp-server",
+        "run", "-m", "src.server",
+        "--provider", "slack"
+      ]
+    }
+  }
+}
+```
+
+With this setup, your AI assistant can:
+- Access tools from all configured providers simultaneously
+- Execute cross-platform actions with a single command
+- Perform platform-specific operations through named providers
+
+For example, you can use natural language to instruct your AI assistant:
+- "Send this error log to my team in both Slack and Google Chat, and ask for help fixing it"
+- "Compare the discussion about the deployment issue between our Slack #engineering channel and Google Chat team space"
+- "Share this code snippet with the frontend team on Slack and the backend team on Google Chat"
+
+Each provider is defined separately in `provider-config.yaml`, allowing you to extend support for any chat platform while maintaining a unified interface for your AI assistant.
 
 ### 📖 Detailed Setup Documentation
 

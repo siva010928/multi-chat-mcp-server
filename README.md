@@ -1,4 +1,14 @@
 # Multi-Chat MCP Server (Google Chat Included)
+
+<div align="center">
+  <p style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 5px solid #4285f4; max-width: 800px; margin: 0 auto;">
+    <strong>🔥 UNIQUE FEATURE:</strong> Run <strong>multiple chat providers simultaneously</strong> with a single AI assistant!<br>
+    Your AI can interact with Google Chat, Slack, Teams, and more—all at once. <br>
+    Ask once: <em>"Share this update with both Slack and Google Chat teams"</em><br>
+    <a href="#step-4-running-multiple-chat-providers-simultaneously">➡️ Learn more about multi-provider capabilities</a>
+  </p>
+</div>
+
 <div align="center">
   <h3>Multi-Chat MCP Server is an open-source Python framework to build AI-powered chat integrations. Ships with full Google Chat support.</h3>
   
@@ -30,6 +40,8 @@ While anyone can adapt this tool for their particular use cases, it's designed w
 - ✅ **Google Chat Provider** - **Production Ready** with comprehensive API coverage
 - 🔄 **Slack Provider** - Planned (contributions welcome)
 - 📝 **Microsoft Teams Provider** - Planned (contributions welcome)
+
+**Key Capability**: All providers can run simultaneously with a unified interface, allowing your AI assistant to seamlessly work across multiple chat platforms at once. [Learn more](#step-4-running-multiple-chat-providers-simultaneously) about this powerful feature.
 
 ### 🧭 The Story Behind This Project
 

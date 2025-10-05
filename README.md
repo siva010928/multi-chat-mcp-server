@@ -274,10 +274,11 @@ uv pip install -r requirements.txt
 # Set up Google Chat API credentials
 # 1. Create Google Cloud project
 # 2. Enable Google Chat API
-# 3. Download credentials.json to src/providers/google_chat/
+# 3. In the Google Chat API dashboard, open the **Configuration** tab and complete the application setup (app name, logo, etc.). *The API will refuse requests until this step is finished.*
+# 4. Download credentials.json to src/providers/google_chat/
 
 # Run authentication
-python -m src.server --provider google_chat --local-auth
+python -m src.server --provider google_chat -local-auth
 ```
 
 ### Step 3: Connect to Your AI Assistant
@@ -498,7 +499,7 @@ We welcome contributions to extend this framework with additional providers:
 **Authentication Problems**
 ```bash
 # Re-authenticate Google Chat
-python -m src.server --provider google_chat --local-auth
+python -m src.server --provider google_chat -local-auth
 ```
 
 **Tool Registration Issues**

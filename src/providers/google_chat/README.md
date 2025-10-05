@@ -168,7 +168,7 @@ providers:
      ```
    - Run the authentication server:
      ```bash
-     python -m src.server --provider google_chat --local-auth
+     python -m src.server --provider google_chat -local-auth
      ```
    - Visit http://localhost:8000/auth in your browser
    - Follow the OAuth flow to grant permissions
@@ -568,7 +568,7 @@ These walkthroughs show how an AI assistant, powered by this MCP server, evolves
   <p><i><strong>Scene 9: Script Consistency Check</strong></i></p>
 </div>
 
-**Developer POV:** The AI reviewed the thread and based on my instruction, it compares the team’s script with your local version — ensuring you're in sync.
+**Developer POV:** The AI reviewed the thread and based on my instruction, it compares the team's script with your local version — ensuring you're in sync.
 
 ---
 
@@ -579,7 +579,7 @@ These walkthroughs show how an AI assistant, powered by this MCP server, evolves
   <p><i><strong>Scene 10: Summarizing Team Activity</strong></i></p>
 </div>
 
-**Context:** You’ve been away. What’s new?
+**Context:** You've been away. What's new?
 
 **AI Response:** The assistant summarizes key activity in your space: questions, PRs, shared files, blockers.
 
@@ -610,7 +610,7 @@ These walkthroughs show how an AI assistant, powered by this MCP server, evolves
   <p><i><strong>Scene 13: AI Finds the Missing File Path</strong></i></p>
 </div>
 
-**Example Use Case:** A teammate mentioned they couldn’t find `ReviewForm.js`.
+**Example Use Case:** A teammate mentioned they couldn't find `ReviewForm.js`.
 
 **AI Response:** The agent searches the local repo, finds the correct path, and replies directly in the chat thread.
 
